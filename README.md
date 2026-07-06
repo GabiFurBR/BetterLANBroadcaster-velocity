@@ -24,8 +24,8 @@
 | `/blb status` | 查看广播状态 |
 | `/blb setmotd <MOTD>` | 设置广播 MOTD |
 | `/blb setdelay <毫秒>` | 设置广播延迟 |
-| `/blb setport <端口|auto>` | 设置广播端口（使用 auto 自动获取） |
-| `/blb debug <on|off>` | 开启/关闭调试模式 |
+| `/blb setport <端口\|auto>` | 设置广播端口（使用 auto 自动获取） |
+| `/blb debug <on\|off>` | 开启/关闭调试模式 |
 | `/blb reload` | 重载配置文件 |
 | `/blb help` | 显示所有子命令帮助 |
 | `/blb version` | 显示插件版本信息 |
