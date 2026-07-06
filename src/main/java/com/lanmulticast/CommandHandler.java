@@ -120,6 +120,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         // Join all remaining args as the MOTD
         String newMotd = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
         plugin.getBroadcaster().setMotd(newMotd);
+        plugin.getConfig().set("motd", newMotd);
+        plugin.saveConfig();
         sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.motd-set", newMotd));
     }
 
@@ -137,6 +139,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 return;
             }
             plugin.getBroadcaster().setDelayMs(ms);
+            plugin.getConfig().set("broadcast-delay-ms", ms);
+            plugin.saveConfig();
             sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.delay-set",
                     String.valueOf(ms)));
         } catch (NumberFormatException e) {
@@ -154,6 +158,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         if (args[1].equalsIgnoreCase("auto")) {
             int autoPort = plugin.getServer().getPort();
             plugin.getBroadcaster().setPort(autoPort);
+            plugin.getConfig().set("broadcast-port", 0);
+            plugin.saveConfig();
             sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.port-set-auto",
                     String.valueOf(autoPort)));
             return;
@@ -166,6 +172,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 return;
             }
             plugin.getBroadcaster().setPort(newPort);
+            plugin.getConfig().set("broadcast-port", newPort);
+            plugin.saveConfig();
             sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.port-set",
                     String.valueOf(newPort)));
         } catch (NumberFormatException e) {
@@ -185,10 +193,14 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         switch (args[1].toLowerCase()) {
             case "on":
                 broadcaster.setDebug(true);
+                plugin.getConfig().set("debug", true);
+                plugin.saveConfig();
                 sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("debug.on"));
                 break;
             case "off":
                 broadcaster.setDebug(false);
+                plugin.getConfig().set("debug", false);
+                plugin.saveConfig();
                 sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("debug.off"));
                 break;
             default:

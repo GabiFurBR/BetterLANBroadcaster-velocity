@@ -1,8 +1,32 @@
 package com.lanmulticast;
 
+import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class BetterLANBroadcaster extends JavaPlugin {
+
+    /** True if the Adventure MiniMessage library is available at runtime. */
+    private static final boolean HAS_MINI_MESSAGE;
+    /** True if the PlaceholderAPI plugin is loaded at runtime. */
+    private static final boolean HAS_PLACEHOLDER_API;
+
+    static {
+        boolean mm = false;
+        try {
+            Class.forName("net.kyori.adventure.text.minimessage.MiniMessage");
+            mm = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+        HAS_MINI_MESSAGE = mm;
+
+        boolean papi = false;
+        try {
+            Class.forName("me.clip.placeholderapi.PlaceholderAPI");
+            papi = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+        HAS_PLACEHOLDER_API = papi;
+    }
 
     private MulticastBroadcaster broadcaster;
     private LanguageManager languageManager;
@@ -33,13 +57,17 @@ public class BetterLANBroadcaster extends JavaPlugin {
         getCommand("betterlanbroadcaster").setExecutor(commandHandler);
         getCommand("betterlanbroadcaster").setTabCompleter(commandHandler);
 
-        getLogger().info("BetterLANBroadcaster has been enabled! Broadcast port: " + port);
+        // Log detected features
+        StringBuilder features = new StringBuilder("BetterLANBroadcaster enabled! Port: ").append(port);
+        if (HAS_MINI_MESSAGE) features.append(" | MiniMessage");
+        if (HAS_PLACEHOLDER_API) features.append(" | PlaceholderAPI");
+        getLogger().info(features.toString());
     }
 
     @Override
     public void onDisable() {
         if (broadcaster != null) {
-            broadcaster.stop();
+            broadcaster.shutdown();
         }
         getLogger().info("BetterLANBroadcaster has been disabled.");
     }
@@ -84,6 +112,56 @@ public class BetterLANBroadcaster extends JavaPlugin {
 
     public LanguageManager getLanguageManager() {
         return languageManager;
+    }
+
+    // -----------------------------------------------------------------------
+    // Formatting helpers
+    // -----------------------------------------------------------------------
+
+    /**
+     * Parses PlaceholderAPI placeholders (if available).
+     * Uses the first online player as context for player-dependent placeholders;
+     * falls back to the raw text if no players are online.
+     */
+    public String parsePlaceholders(String text) {
+        if (!HAS_PLACEHOLDER_API) {
+            return text;
+        }
+        try {
+            // Use first online player as context, if available
+            if (!getServer().getOnlinePlayers().isEmpty()) {
+                return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(
+                        getServer().getOnlinePlayers().iterator().next(), text);
+            }
+            // PlaceholderAPI.setPlaceholders(OfflinePlayer, String) accepts null
+            return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(null, text);
+        } catch (Exception e) {
+            return text;
+        }
+    }
+
+    /**
+     * Attempts to parse the text as MiniMessage and convert it to legacy
+     * {@code §} colour codes. Afterwards translates any remaining legacy
+     * {@code &} codes as well.
+     * <p>
+     * If MiniMessage is not available or parsing fails, the method falls back
+     * to simple {@code &}→{@code §} translation.
+     */
+    public String formatMiniMessage(String text) {
+        if (HAS_MINI_MESSAGE) {
+            try {
+                net.kyori.adventure.text.Component component =
+                        net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(text);
+                String legacy = net.kyori.adventure.text.serializer.legacy
+                        .LegacyComponentSerializer.legacySection().serialize(component);
+                // Still translate any remaining & codes (e.g. from MiniMessage-ignored text)
+                return ChatColor.translateAlternateColorCodes('&', legacy);
+            } catch (Exception ignored) {
+                // MiniMessage failed — fall through to legacy translation
+            }
+        }
+        return ChatColor.translateAlternateColorCodes('&', text);
     }
 
     /**

@@ -1,36 +1,45 @@
 package com.lanmulticast;
 
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Periodically broadcasts the server's MOTD and port via UDP multicast
  * to 224.0.2.60:4445, following the Minecraft LAN discovery protocol.
  * <p>
  * Format: [MOTD]serverMOTD[/MOTD][AD]serverPort[/AD]
+ * <p>
+ * Uses a dedicated ScheduledExecutorService instead of BukkitRunnable,
+ * making it compatible with Spigot, Paper, and Folia servers alike.
  */
 public class MulticastBroadcaster {
 
     private static final String MULTICAST_ADDRESS = "224.0.2.60";
     private static final int MULTICAST_PORT = 4445;
 
-    private final JavaPlugin plugin;
+    private final BetterLANBroadcaster plugin;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "BetterLANBroadcaster");
+        t.setDaemon(true);
+        return t;
+    });
 
     private String motd;
     private int port;
     private int delayMs;
     private boolean running;
     private boolean debug;
-    private BukkitRunnable task;
+    private ScheduledFuture<?> scheduledFuture;
 
-    public MulticastBroadcaster(JavaPlugin plugin, String motd, int port, int delayMs) {
+    public MulticastBroadcaster(BetterLANBroadcaster plugin, String motd, int port, int delayMs) {
         this.plugin = plugin;
         this.motd = sanitizeMotd(motd);
         this.port = port;
@@ -40,7 +49,7 @@ public class MulticastBroadcaster {
     }
 
     /**
-     * Starts the periodic multicast broadcast task asynchronously.
+     * Starts the periodic multicast broadcast task.
      */
     public void start() {
         if (running) {
@@ -51,14 +60,24 @@ public class MulticastBroadcaster {
     }
 
     /**
-     * Stops the broadcast task.
+     * Stops the broadcast task. The underlying executor remains alive
+     * in case the broadcast is resumed later.
      */
     public void stop() {
         running = false;
-        if (task != null) {
-            task.cancel();
-            task = null;
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            scheduledFuture = null;
         }
+    }
+
+    /**
+     * Full shutdown — stops the task and terminates the executor.
+     * Called from onDisable().
+     */
+    public void shutdown() {
+        stop();
+        scheduler.shutdownNow();
     }
 
     /**
@@ -112,34 +131,25 @@ public class MulticastBroadcaster {
     }
 
     /**
-     * Cancels the current task and schedules a new one.
+     * Cancels the current future and schedules a new one (only if running).
      */
     private void reschedule() {
-        if (task != null) {
-            task.cancel();
-            task = null;
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            scheduledFuture = null;
         }
-        scheduleTask();
+        if (running) {
+            scheduleTask();
+        }
     }
 
     /**
-     * Schedules a repeating async task. Converts ms to ticks (1 tick = 50ms).
+     * Schedules the broadcast on the dedicated executor.
+     * Works on Spigot, Paper <em>and</em> Folia without any platform-specific API.
      */
     private void scheduleTask() {
-        long ticks = Math.max(1, delayMs / 50L);
-
-        task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!running) {
-                    cancel();
-                    return;
-                }
-                sendBroadcast();
-            }
-        };
-
-        task.runTaskTimerAsynchronously(plugin, 0L, ticks);
+        scheduledFuture = scheduler.scheduleAtFixedRate(
+                this::sendBroadcast, 0, delayMs, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -171,18 +181,29 @@ public class MulticastBroadcaster {
     }
 
     /**
-     * Replaces placeholders in the MOTD template with real-time server values.
-     * <ul>
-     *   <li>{@code {online}} — current online player count</li>
-     *   <li>{@code {max}} — maximum player count</li>
-     * </ul>
+     * Resolves the MOTD template:
+     * <ol>
+     *   <li>Replaces {@code {online}} / {@code {max}} with real-time player counts</li>
+     *   <li>Parses PlaceholderAPI placeholders (if the plugin is installed)</li>
+     *   <li>Parses MiniMessage tags and converts to legacy {@code §} colour codes (if Adventure is available)</li>
+     *   <li>Falls back to standard {@code &} colour code translation for any remaining codes</li>
+     * </ol>
      */
     private String resolveMotd() {
         String resolved = motd;
+
+        // 1. Built-in player count placeholders
         int online = plugin.getServer().getOnlinePlayers().size();
         int max = plugin.getServer().getMaxPlayers();
         resolved = resolved.replace("{online}", String.valueOf(online));
         resolved = resolved.replace("{max}", String.valueOf(max));
+
+        // 2. PlaceholderAPI placeholders
+        resolved = plugin.parsePlaceholders(resolved);
+
+        // 3. MiniMessage → legacy colour codes, then & → § translation
+        resolved = plugin.formatMiniMessage(resolved);
+
         return resolved;
     }
 
