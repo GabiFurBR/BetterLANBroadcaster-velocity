@@ -7,7 +7,7 @@
 
     <groupId>com.lanmulticast</groupId>
     <artifactId>BetterLANBroadcaster</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <packaging>jar</packaging>
 
     <name>BetterLANBroadcaster</name>
@@ -56,6 +56,13 @@
             <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
+        <!-- bStats metrics -->
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
+            <version>3.2.1</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -79,6 +86,12 @@
                         <goals><goal>shade</goal></goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.bstats</pattern>
+                                    <shadedPattern>com.lanmulticast.libs.bstats</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>

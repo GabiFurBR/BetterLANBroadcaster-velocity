@@ -1,5 +1,5 @@
 name: BetterLANBroadcaster
-version: 1.2.0
+version: 1.2.1
 main: com.lanmulticast.BetterLANBroadcaster
 api-version: 1.20
 folia-supported: true
