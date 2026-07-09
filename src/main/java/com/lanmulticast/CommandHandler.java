@@ -81,6 +81,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.already-running"));
         } else {
             broadcaster.start();
+            plugin.getConfig().set("broadcast-enabled", true);
+            plugin.saveConfig();
             sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.started"));
         }
     }
@@ -91,6 +93,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.already-stopped"));
         } else {
             broadcaster.stop();
+            plugin.getConfig().set("broadcast-enabled", false);
+            plugin.saveConfig();
             sender.sendMessage(plugin.getLanguageManager().getPrefixedMessage("broadcast.stopped"));
         }
     }

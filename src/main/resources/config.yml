@@ -12,6 +12,9 @@ debug: false
 #   {max}    - maximum player count
 motd: "A Minecraft Server"
 
+# Auto-start broadcasting on server startup: true to enable, false to disable
+broadcast-enabled: false
+
 # Broadcast delay in milliseconds (1000 ms = 1 second)
 # Default: 1500 ms = 1.5 seconds (Minecraft standard)
 broadcast-delay-ms: 1500

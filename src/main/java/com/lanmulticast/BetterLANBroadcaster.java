@@ -1,5 +1,6 @@
 package com.lanmulticast;
 
+import org.bstats.bukkit.Metrics;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -52,10 +53,19 @@ public class BetterLANBroadcaster extends JavaPlugin {
         broadcaster = new MulticastBroadcaster(this, motd, port, delayMs);
         broadcaster.setDebug(debug);
 
+        // Auto-start broadcasting if enabled in config
+        if (getConfig().getBoolean("broadcast-enabled", false)) {
+            broadcaster.start();
+        }
+
         // Register command handler
         commandHandler = new CommandHandler(this);
         getCommand("betterlanbroadcaster").setExecutor(commandHandler);
         getCommand("betterlanbroadcaster").setTabCompleter(commandHandler);
+
+        // Initialize bStats metrics
+        // Plugin ID: 32441 (https://bstats.org/plugin/bukkit/BetterLANBroadcaster/32441)
+        Metrics metrics = new Metrics(this, 32441);
 
         // Log detected features
         StringBuilder features = new StringBuilder("BetterLANBroadcaster enabled! Port: ").append(port);
@@ -91,6 +101,14 @@ public class BetterLANBroadcaster extends JavaPlugin {
         broadcaster.setDelayMs(delayMs);
         broadcaster.setPort(port);
         broadcaster.setDebug(debug);
+
+        // Handle state transition based on config
+        boolean shouldBeRunning = getConfig().getBoolean("broadcast-enabled", false);
+        if (shouldBeRunning && !broadcaster.isRunning()) {
+            broadcaster.start();
+        } else if (!shouldBeRunning && broadcaster.isRunning()) {
+            broadcaster.stop();
+        }
     }
 
     /**
