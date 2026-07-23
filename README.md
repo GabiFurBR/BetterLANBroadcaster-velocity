@@ -1,128 +1,128 @@
 # BetterLANBroadcaster
 
-一个 Spigot 插件，通过 UDP 多播协议在局域网中广播 Minecraft 服务器，使客户端无需手动输入地址即可发现服务器。
+A Spigot plugin that broadcasts Minecraft servers over LAN using UDP multicast, allowing clients to discover servers without manually entering addresses.
 
-## 功能
+## Features
 
-- 遵循 Minecraft 局域网发现协议，向 `224.0.2.60:4445` 发送服务器信息
-- MOTD 支持 `{online}`（当前在线人数）和 `{max}`（最大玩家数）变量，实时自动替换
-- 支持通过命令动态启停广播
-- 支持在线修改广播 MOTD 和广播延迟
-- 支持查看当前广播状态
-- 支持自定义广播端口（手动指定或自动获取）
-- 支持调试模式，实时查看广播包发送日志
-- 支持多语言（英文、中文）
-- 所有配置热重载
+- Follows the Minecraft LAN discovery protocol, sending server information to `224.0.2.60:4445`
+- MOTD supports `{online}` (current online players) and `{max}` (max players) variables, automatically replaced in real-time
+- Dynamic start/stop broadcasting via commands
+- Online modification of broadcast MOTD and broadcast delay
+- View current broadcast status
+- Custom broadcast port (manual or auto-detect)
+- Debug mode for real-time broadcast packet logs
+- Multi-language support (English, Chinese)
+- Hot-reload all configurations
 
-## 命令
+## Commands
 
-| 命令 | 说明 |
-|------|------|
-| `/blb` | 显示插件版本信息 |
-| `/blb start` | 启动广播 |
-| `/blb stop` | 停止广播 |
-| `/blb status` | 查看广播状态 |
-| `/blb setmotd <MOTD>` | 设置广播 MOTD |
-| `/blb setdelay <毫秒>` | 设置广播延迟 |
-| `/blb setport <端口\|auto>` | 设置广播端口（使用 auto 自动获取） |
-| `/blb debug <on\|off>` | 开启/关闭调试模式 |
-| `/blb reload` | 重载配置文件 |
-| `/blb help` | 显示所有子命令帮助 |
-| `/blb version` | 显示插件版本信息 |
+| Command | Description |
+|---------|-------------|
+| `/blb` | Show plugin version info |
+| `/blb start` | Start broadcasting |
+| `/blb stop` | Stop broadcasting |
+| `/blb status` | View broadcast status |
+| `/blb setmotd <MOTD>` | Set broadcast MOTD |
+| `/blb setdelay <milliseconds>` | Set broadcast delay |
+| `/blb setport <port\|auto>` | Set broadcast port (use `auto` to auto-detect) |
+| `/blb debug <on\|off>` | Enable/disable debug mode |
+| `/blb reload` | Reload configuration files |
+| `/blb help` | Show all subcommand help |
+| `/blb version` | Show plugin version info |
 
-> 提示：`/betterlanbroadcaster` 是完整命令名，`/blb` 为其别名，两者等效。
+> Tip: `/betterlanbroadcaster` is the full command, `/blb` is its alias; both are equivalent.
 
-所有命令需要 `betterlanbroadcaster.admin` 权限，默认仅 OP 可用。
+All commands require the `betterlanbroadcaster.admin` permission, available to OPs by default.
 
-## 配置文件
+## Configuration
 
 `plugins/BetterLANBroadcaster/config.yml`
 
 ```yaml
-# 语言设置: en (英语) 或 zh (中文)
+# Language setting: en or zh
 language: en
 
-# 局域网显示的服务端 MOTD
-# 可用变量:
-#   {online} - 当前在线玩家数
-#   {max}    - 最大玩家数
+# Server MOTD displayed on LAN
+# Available variables:
+#   {online} - Current online player count
+#   {max}    - Maximum player count
 motd: "A Minecraft Server"
 
-# 广播延迟（毫秒）
-# 默认: 1500 ms = 1.5 秒
+# Broadcast delay (milliseconds)
+# Default: 1500 ms = 1.5 seconds
 broadcast-delay-ms: 1500
 
-# 调试模式: true 开启后每次发送广播包将在控制台输出日志
+# Debug mode: when true, each broadcast packet is logged to console
 debug: false
 
-# 广播端口: 设为 0 自动获取服务器端口，或指定具体端口号
+# Broadcast port: set to 0 to auto-detect server port, or specify a port number
 broadcast-port: 0
 ```
 
-## 多语言
+## Multi-language
 
-语言文件位于 `plugins/BetterLANBroadcaster/lang/` 目录：
+Language files are located in the `plugins/BetterLANBroadcaster/lang/` directory:
 
-- `messages_en.yml` - 英文语言文件
-- `messages_zh.yml` - 中文语言文件
+- `messages_en.yml` - English language file
+- `messages_zh.yml` - Chinese language file
 
-在 `config.yml` 中将 `language` 设置为 `en` 或 `zh` 切换语言。
+Set `language` to `en` or `zh` in `config.yml` to switch languages.
 
-## 颜色代码
+## Color Codes
 
-MOTD 支持 Minecraft 颜色代码，使用 `&` 符号加颜色字符即可为服务器名称着色。
+MOTD supports Minecraft color codes using the `&` symbol followed by a color character to color the server name.
 
-常用颜色代码：
+Common color codes:
 
-| 代码 | 颜色 |
-|------|------|
-| `&0` | 黑色 |
-| `&1` | 深蓝色 |
-| `&2` | 深绿色 |
-| `&3` | 深青色 |
-| `&4` | 深红色 |
-| `&5` | 紫色 |
-| `&6` | 金色 |
-| `&7` | 灰色 |
-| `&8` | 深灰色 |
-| `&9` | 蓝色 |
-| `&a` | 绿色 |
-| `&b` | 青色 |
-| `&c` | 红色 |
-| `&d` | 粉红色 |
-| `&e` | 黄色 |
-| `&f` | 白色 |
+| Code | Color |
+|------|-------|
+| `&0` | Black |
+| `&1` | Dark Blue |
+| `&2` | Dark Green |
+| `&3` | Dark Aqua |
+| `&4` | Dark Red |
+| `&5` | Purple |
+| `&6` | Gold |
+| `&7` | Gray |
+| `&8` | Dark Gray |
+| `&9` | Blue |
+| `&a` | Green |
+| `&b` | Aqua |
+| `&c` | Red |
+| `&d` | Light Purple |
+| `&e` | Yellow |
+| `&f` | White |
 
-格式代码：
+Format codes:
 
-| 代码 | 效果 |
-|------|------|
-| `&l` | 粗体 |
-| `&o` | 斜体 |
-| `&n` | 下划线 |
-| `&m` | 删除线 |
-| `&k` | 随机字符 |
-| `&r` | 重置 |
+| Code | Effect |
+|------|--------|
+| `&l` | Bold |
+| `&o` | Italic |
+| `&n` | Underline |
+| `&m` | Strikethrough |
+| `&k` | Random |
+| `&r` | Reset |
 
-例如，配置文件中设置彩色 MOTD：
+For example, setting a colored MOTD in the config:
 
 ```yaml
-motd: "&6&l✦ &eBetterLAN &7- &a生存服务器 &6&l✦"
+motd: "&6&l✦ &eBetterLAN &7- &aSurvival Server &6&l✦"
 ```
 
-在游戏中将显示为金色的 **✦ BetterLAN - 生存服务器 ✦**。
+In-game, it will display as gold **✦ BetterLAN - Survival Server ✦**.
 
-## 局域网发现协议说明
+## LAN Discovery Protocol
 
-插件实现的协议与 Minecraft 原版局域网广播完全兼容：
+The plugin implements a protocol fully compatible with Minecraft's vanilla LAN broadcast:
 
-- 协议: UDP 多播
-- 地址: `224.0.2.60`
-- 端口: `4445`
-- 消息格式: `[MOTD]服务端MOTD[/MOTD][AD]服务端端口[/AD]`
-- 编码: UTF-8
+- Protocol: UDP Multicast
+- Address: `224.0.2.60`
+- Port: `4445`
+- Message format: `[MOTD]Server MOTD[/MOTD][AD]Server Port[/AD]`
+- Encoding: UTF-8
 
-## 构建
+## Build
 
 ```bash
 git clone https://github.com/myxxr/BetterLANBroadcaster.git
@@ -130,26 +130,30 @@ cd BetterLANBroadcaster
 mvn clean package
 ```
 
-构建产物位于 `target/BetterLANBroadcaster-1.0.0.jar`。
+The build artifact will be at `target/BetterLANBroadcaster-1.0.0.jar`.
 
-## 依赖
+## Dependencies
 
 - Spigot 1.20.4+ API
 - Java 17+
 
-## 安装
+## Installation
 
-1. 将 `BetterLANBroadcaster-1.0.0.jar` 放入 `plugins/` 目录
-2. 启动服务器
-3. 使用 `/blb start` 命令启动广播
-4. 局域网中的 Minecraft 客户端进入多人游戏即可发现服务器
+1. Place `BetterLANBroadcaster-1.0.0.jar` into the `plugins/` directory
+2. Start the server
+3. Use `/blb start` to start broadcasting
+4. Minecraft clients on the LAN can discover the server in the Multiplayer menu
 
-## 作者
+## Author
 
 Immyxxr
 - Email: myxxr1999@163.com
 - QQ: 2855848368
 
-## 开源协议
+## License
 
-本项目采用 GNU General Public License v3.0 (GPL v3) 开源协议。详细信息请参阅 [LICENSE](LICENSE) 文件。
+This project is licensed under the GNU General Public License v3.0 (GPL v3). For details, see the [LICENSE](LICENSE) file.
+
+## bStats
+
+![bStats](https://bstats.org/signatures/bukkit/BetterLANBroadcaster.svg)
