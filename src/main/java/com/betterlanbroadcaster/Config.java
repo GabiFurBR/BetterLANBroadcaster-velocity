@@ -11,14 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
-/**
- * Handles BetterLANBroadcaster configuration.
- *
- * <p>The configuration is stored in {@code config.yml}.</p>
- *
- * <p>All values are validated before being exposed to the
- * rest of the plugin.</p>
- */
 public class Config {
 
     private static final String CONFIG_RESOURCE = "/config.yml";
@@ -46,11 +38,6 @@ public class Config {
         this.configFile = dataDirectory.resolve("config.yml");
     }
 
-    /**
-     * Loads the configuration.
-     *
-     * @return true if the configuration was loaded successfully
-     */
     public boolean load() {
         try {
             createDataDirectory();
@@ -97,21 +84,10 @@ public class Config {
             return false;
         }
     }
-
-    /**
-     * Reloads the configuration from disk.
-     *
-     * @return true if the configuration was reloaded successfully
-     */
     public boolean reload() {
         return load();
     }
 
-    /**
-     * Saves the current configuration.
-     *
-     * @return true if the configuration was saved successfully
-     */
     public boolean save() {
         if (root == null) {
             plugin.getLogger().warn(
@@ -144,16 +120,10 @@ public class Config {
         }
     }
 
-    /**
-     * Creates the plugin data directory if necessary.
-     */
     private void createDataDirectory() throws IOException {
         Files.createDirectories(dataDirectory);
     }
 
-    /**
-     * Creates config.yml from the resource bundled inside the plugin.
-     */
     private void createDefaultConfigIfNecessary() throws IOException {
         if (Files.exists(configFile)) {
             return;
@@ -177,12 +147,6 @@ public class Config {
         );
     }
 
-    /**
-     * Creates the Configurate YAML loader.
-     *
-     * <p>BLOCK style keeps the configuration readable and prevents
-     * Configurate from serializing the entire file as a flow-style object.</p>
-     */
     private YamlConfigurationLoader createLoader() {
         return YamlConfigurationLoader.builder()
                 .path(configFile)
@@ -191,9 +155,6 @@ public class Config {
                 .build();
     }
 
-    /**
-     * Applies all default values to an empty configuration.
-     */
     private void applyDefaults() throws SerializationException {
         root.node("language").set(DEFAULT_LANGUAGE);
         root.node("debug").set(DEFAULT_DEBUG);
@@ -204,22 +165,10 @@ public class Config {
         root.node("motd").set(DEFAULT_MOTD);
     }
 
-    /**
-     * Validates all configuration values and fills missing values.
-     *
-     * @return true if the configuration was modified
-     */
     private boolean validateAndApplyDefaults()
             throws SerializationException {
 
         boolean changed = false;
-
-        /*
-         * ========================================================
-         * Language
-         * ========================================================
-         */
-
         String language;
 
         try {
@@ -268,22 +217,10 @@ public class Config {
             }
         }
 
-        /*
-         * ========================================================
-         * Debug
-         * ========================================================
-         */
-
         if (root.node("debug").virtual()) {
             root.node("debug").set(DEFAULT_DEBUG);
             changed = true;
         }
-
-        /*
-         * ========================================================
-         * Broadcast enabled
-         * ========================================================
-         */
 
         if (root.node("broadcast-enabled").virtual()) {
             root.node("broadcast-enabled")
@@ -291,12 +228,6 @@ public class Config {
 
             changed = true;
         }
-
-        /*
-         * ========================================================
-         * Broadcast delay
-         * ========================================================
-         */
 
         Long delay;
 
@@ -347,15 +278,6 @@ public class Config {
 
             changed = true;
         }
-
-        /*
-         * ========================================================
-         * Broadcast port
-         * ========================================================
-         *
-         * 0 = automatic port detection
-         */
-
         Integer port;
 
         try {
@@ -388,18 +310,6 @@ public class Config {
 
             changed = true;
         }
-
-        /*
-         * ========================================================
-         * Network interface
-         * ========================================================
-         *
-         * Supported values:
-         *
-         * auto
-         * interface name
-         * IPv4 address
-         */
 
         String networkInterface;
 
@@ -446,12 +356,6 @@ public class Config {
             }
         }
 
-        /*
-         * ========================================================
-         * MOTD
-         * ========================================================
-         */
-
         String motd;
 
         try {
@@ -473,12 +377,6 @@ public class Config {
 
         return changed;
     }
-
-    /*
-     * ============================================================
-     * Getters
-     * ============================================================
-     */
 
     public String getLanguage() {
 
@@ -638,21 +536,6 @@ public class Config {
         }
     }
 
-    /*
-     * ============================================================
-     * Generic Setter
-     * ============================================================
-     */
-
-    /**
-     * Sets a configuration value and saves the configuration.
-     *
-     * <p>This method exists for compatibility with CommandHandler.</p>
-     *
-     * @param path configuration path
-     * @param value new value
-     * @return true if the value was saved successfully
-     */
     public boolean set(String path, Object value) {
 
         if (root == null) {
@@ -688,12 +571,6 @@ public class Config {
             return false;
         }
     }
-
-    /*
-     * ============================================================
-     * Setters
-     * ============================================================
-     */
 
     public boolean setLanguage(String language) {
 
@@ -893,12 +770,6 @@ public class Config {
             return false;
         }
     }
-
-    /*
-     * ============================================================
-     * Utility
-     * ============================================================
-     */
 
     public Path getConfigFile() {
         return configFile;

@@ -45,11 +45,6 @@ public class BetterLANBroadcaster {
         this.language = new Language(this);
         this.initialized = false;
     }
-
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
-
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
         logger.info(
@@ -72,11 +67,6 @@ public class BetterLANBroadcaster {
 
         logger.info("BetterLANBroadcaster-Velocity foi iniciado!");
 
-        /*
-         * broadcast-enabled controla somente o início automático.
-         *
-         * Isso NÃO impede /blb start de iniciar o broadcaster manualmente.
-         */
         if (config.isBroadcastEnabled()) {
             if (!startBroadcaster()) {
                 logger.error(
@@ -88,28 +78,15 @@ public class BetterLANBroadcaster {
         }
     }
 
-    // =========================================================
-    // SHUTDOWN
-    // =========================================================
-
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
         initialized = false;
-
-        /*
-         * shutdown() é utilizado em vez de stop(), pois o shutdown
-         * encerra também o executor/socket interno do broadcaster.
-         */
         shutdownBroadcaster();
 
         logger.info(
                 "BetterLANBroadcaster foi desligado."
         );
     }
-
-    // =========================================================
-    // COMMAND REGISTRATION
-    // =========================================================
 
     private void registerCommands() {
         CommandManager commandManager = server.getCommandManager();
@@ -129,15 +106,6 @@ public class BetterLANBroadcaster {
         );
     }
 
-    // =========================================================
-    // START
-    // =========================================================
-
-    /**
-     * Inicia o broadcaster utilizando a configuração atual.
-     *
-     * @return true se o broadcaster foi iniciado com sucesso.
-     */
     public synchronized boolean startBroadcaster() {
 
         if (!initialized) {
@@ -148,17 +116,10 @@ public class BetterLANBroadcaster {
             return false;
         }
 
-        /*
-         * Se já está executando, não criamos uma segunda instância.
-         */
         if (broadcaster != null && broadcaster.isRunning()) {
             return false;
         }
 
-        /*
-         * Caso exista um objeto antigo parado, destruímos completamente
-         * esse objeto antes de criar um novo.
-         */
         if (broadcaster != null) {
             broadcaster.shutdown();
             broadcaster = null;
@@ -166,10 +127,6 @@ public class BetterLANBroadcaster {
 
         int configuredPort = config.getBroadcastPort();
 
-        /*
-         * Porta 0 significa:
-         * "usar automaticamente a porta em que o Velocity está ouvindo".
-         */
         int advertisedPort = configuredPort;
 
         if (advertisedPort == 0) {
@@ -180,10 +137,6 @@ public class BetterLANBroadcaster {
 
         long configuredDelay = config.getBroadcastDelayMs();
 
-        /*
-         * Config garante que o delay esteja dentro do intervalo válido.
-         * MulticastBroadcaster trabalha com int.
-         */
         int delayMs = (int) configuredDelay;
 
         try {
@@ -224,16 +177,6 @@ public class BetterLANBroadcaster {
         }
     }
 
-    // =========================================================
-    // STOP
-    // =========================================================
-
-    /**
-     * Para o broadcaster mantendo o objeto disponível para
-     * compatibilidade com o fluxo de start/stop.
-     *
-     * @return true se o broadcaster estava rodando e foi parado.
-     */
     public synchronized boolean stopBroadcaster() {
 
         if (broadcaster == null) {
@@ -253,13 +196,6 @@ public class BetterLANBroadcaster {
         return true;
     }
 
-    // =========================================================
-    // SHUTDOWN
-    // =========================================================
-
-    /**
-     * Encerra completamente o broadcaster e libera seus recursos.
-     */
     public synchronized void shutdownBroadcaster() {
 
             if (broadcaster == null) {
@@ -277,19 +213,6 @@ public class BetterLANBroadcaster {
                 broadcaster = null;
             }
         }
-
-        // =========================================================
-        // RELOAD
-        // =========================================================
-
-        /**
-         * Recria completamente o broadcaster utilizando a configuração atual.
-         *
-         * O valor broadcast-enabled determina se ele deverá ficar rodando
-         * após o reload.
-         *
-         * @return true se o reload foi concluído com sucesso.
-         */
         public synchronized boolean reloadBroadcaster() {
         shutdownBroadcaster();
 
@@ -313,15 +236,6 @@ public class BetterLANBroadcaster {
         return startBroadcaster();
     }
 
-    // =========================================================
-    // MAX PLAYERS
-    // =========================================================
-
-    /**
-     * Retorna o número máximo de jogadores utilizado pelo Velocity.
-     *
-     * @return limite máximo de jogadores.
-     */
     public int getMaxPlayers() {
 
         try {
@@ -342,15 +256,8 @@ public class BetterLANBroadcaster {
             );
         }
 
-        /*
-         * Fallback para compatibilidade.
-         */
         return 100;
     }
-
-    // =========================================================
-    // GETTERS
-    // =========================================================
 
     public ProxyServer getServer() {
         return server;
@@ -380,13 +287,6 @@ public class BetterLANBroadcaster {
         return VERSION;
     }
 
-    // =========================================================
-    // MINIMESSAGE / LEGACY
-    // =========================================================
-
-    /**
-     * Converte mensagens que utilizam MiniMessage para legacy.
-     */
     public String formatMiniMessage(String text) {
 
         if (text == null || text.isEmpty()) {
@@ -420,9 +320,6 @@ public class BetterLANBroadcaster {
         }
     }
 
-    /**
-     * Converte códigos de cor no formato &a, &l, etc.
-     */
     private String translateColorCodes(String text) {
 
         if (text == null || text.isEmpty()) {

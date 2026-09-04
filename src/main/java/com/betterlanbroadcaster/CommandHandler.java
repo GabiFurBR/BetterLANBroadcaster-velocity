@@ -116,18 +116,7 @@ public class CommandHandler implements SimpleCommand {
         }
     }
 
-    // =========================================================
-    // START
-    // =========================================================
-
     private void handleStart(CommandSource source) {
-
-        /*
-         * broadcast-enabled NÃO bloqueia mais o /blb start.
-         *
-         * Essa configuração controla somente o início automático
-         * do plugin durante o ProxyInitializeEvent.
-         */
 
         if (plugin.getBroadcaster() != null
                 && plugin.getBroadcaster().isRunning()) {
@@ -157,10 +146,6 @@ public class CommandHandler implements SimpleCommand {
             );
         }
     }
-
-    // =========================================================
-    // STOP
-    // =========================================================
 
     private void handleStop(CommandSource source) {
 
@@ -192,11 +177,6 @@ public class CommandHandler implements SimpleCommand {
             );
         }
     }
-
-    // =========================================================
-    // STATUS
-    // =========================================================
-
     private void handleStatus(CommandSource source) {
         MulticastBroadcaster broadcaster = plugin.getBroadcaster();
 
@@ -251,11 +231,6 @@ public class CommandHandler implements SimpleCommand {
                         : plugin.getLanguage().get("debug.status-off")
         );
     }
-
-    // =========================================================
-    // SET MOTD
-    // =========================================================
-
     private void handleSetMotd(
             CommandSource source,
             String[] args
@@ -309,11 +284,6 @@ public class CommandHandler implements SimpleCommand {
             );
             return;
         }
-
-        /*
-         * Se o broadcaster estiver realmente rodando,
-         * aplicamos a mudança imediatamente.
-         */
         if (isBroadcastRunning()) {
             plugin.reconfigureBroadcaster();
         }
@@ -324,10 +294,6 @@ public class CommandHandler implements SimpleCommand {
                 motd
         );
     }
-
-    // =========================================================
-    // SET DELAY
-    // =========================================================
 
     private void handleSetDelay(
             CommandSource source,
@@ -358,12 +324,6 @@ public class CommandHandler implements SimpleCommand {
             );
             return;
         }
-
-        /*
-         * Limites utilizados pelo Config:
-         * mínimo = 50 ms
-         * máximo = 24 horas
-         */
         if (delay < 50
                 || delay > 86_400_000L) {
 
@@ -395,12 +355,6 @@ public class CommandHandler implements SimpleCommand {
             return;
         }
 
-        /*
-         * Só recria o broadcaster se ele estiver realmente ativo.
-         *
-         * Isso permite configurar o delay enquanto o broadcast
-         * estiver parado sem iniciá-lo acidentalmente.
-         */
         if (isBroadcastRunning()) {
             plugin.reconfigureBroadcaster();
         }
@@ -411,11 +365,6 @@ public class CommandHandler implements SimpleCommand {
                 delay
         );
     }
-
-    // =========================================================
-    // SET PORT
-    // =========================================================
-
     private void handleSetPort(
             CommandSource source,
             String[] args
@@ -486,9 +435,6 @@ public class CommandHandler implements SimpleCommand {
             return;
         }
 
-        /*
-         * Aplica imediatamente somente se estiver rodando.
-         */
         if (isBroadcastRunning()) {
             plugin.reconfigureBroadcaster();
         }
@@ -515,10 +461,6 @@ public class CommandHandler implements SimpleCommand {
             );
         }
     }
-
-    // =========================================================
-    // SET INTERFACE
-    // =========================================================
 
     private void handleSetInterface(
             CommandSource source,
@@ -567,9 +509,6 @@ public class CommandHandler implements SimpleCommand {
             return;
         }
 
-        /*
-         * Aplica imediatamente somente se estiver rodando.
-         */
         if (isBroadcastRunning()) {
 
             boolean success =
@@ -591,10 +530,6 @@ public class CommandHandler implements SimpleCommand {
                 networkInterface
         );
     }
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
 
     private void handleDebug(
             CommandSource source,
@@ -681,9 +616,6 @@ public class CommandHandler implements SimpleCommand {
             return;
         }
 
-        /*
-         * Debug pode ser alterado diretamente sem recriar o broadcaster.
-         */
         if (plugin.getBroadcaster() != null) {
 
             plugin.getBroadcaster()
@@ -697,11 +629,6 @@ public class CommandHandler implements SimpleCommand {
                         : "debug.off"
         );
     }
-
-    // =========================================================
-    // RELOAD
-    // =========================================================
-
     private void handleReload(
             CommandSource source
     ) {
@@ -719,13 +646,6 @@ public class CommandHandler implements SimpleCommand {
                 plugin.getConfig().getLanguage()
         );
 
-        /*
-         * reloadBroadcaster() agora:
-         *
-         * - destrói a instância antiga;
-         * - inicia novamente se broadcast-enabled=true;
-         * - mantém parado se broadcast-enabled=false.
-         */
         boolean success =
                 plugin.reconfigureBroadcaster();
 
@@ -743,11 +663,6 @@ public class CommandHandler implements SimpleCommand {
                 "config.reloaded"
         );
     }
-
-    // =========================================================
-    // HELP
-    // =========================================================
-
     private void handleHelp(
             CommandSource source
     ) {
@@ -811,10 +726,6 @@ public class CommandHandler implements SimpleCommand {
         );
     }
 
-    // =========================================================
-    // VERSION
-    // =========================================================
-
     private void handleVersion(
         CommandSource source
 ) {
@@ -836,10 +747,6 @@ public class CommandHandler implements SimpleCommand {
             "/blb help"
     );
 }
-
-    // =========================================================
-    // TAB COMPLETION
-    // =========================================================
 
     @Override
     public List<String> suggest(
@@ -916,19 +823,11 @@ public class CommandHandler implements SimpleCommand {
         return List.of();
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
-
     private boolean isBroadcastRunning() {
 
         return plugin.getBroadcaster() != null
                 && plugin.getBroadcaster().isRunning();
     }
-
-    // =========================================================
-    // MESSAGE HELPERS
-    // =========================================================
 
     private void send(
         CommandSource source,

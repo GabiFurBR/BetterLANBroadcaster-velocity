@@ -433,13 +433,6 @@ public class MulticastBroadcaster {
         DatagramChannel channel = null;
 
         try {
-            /*
-             * Usa explicitamente IPv4.
-             *
-             * Isso evita que o sistema tente criar um socket IPv6
-             * quando o endereço multicast utilizado pelo protocolo
-             * é IPv4.
-             */
             channel =
                     DatagramChannel.open(
                             StandardProtocolFamily.INET
@@ -455,31 +448,11 @@ public class MulticastBroadcaster {
                     MULTICAST_TTL
             );
 
-            /*
-             * Esta é a parte principal da correção.
-             *
-             * Em vez de:
-             *
-             *     MulticastSocket.setInterface(ipv4)
-             *
-             * usamos:
-             *
-             *     IP_MULTICAST_IF -> NetworkInterface
-             *
-             * que é a API NIO moderna para selecionar
-             * a interface de saída multicast.
-             */
             channel.setOption(
                     StandardSocketOptions.IP_MULTICAST_IF,
                     networkInterface
             );
 
-            /*
-             * Faz o bind no IPv4 da interface.
-             *
-             * Porta 0 significa que o sistema escolhe uma
-             * porta local livre para o socket de envio.
-             */
             channel.bind(
                     new InetSocketAddress(
                             ipv4,

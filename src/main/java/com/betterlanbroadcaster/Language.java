@@ -31,9 +31,6 @@ public class Language {
         load(plugin.getConfig().getLanguage());
     }
 
-    /**
-     * Loads the specified language.
-     */
     public void load(String language) {
         String requestedLanguage = language;
 
@@ -119,9 +116,6 @@ public class Language {
         return null;
     }
 
-    /**
-     * Gets a translated message without adding the prefix.
-     */
     public String get(String path) {
         Object value = find(messages, path);
 
@@ -136,21 +130,10 @@ public class Language {
         return String.valueOf(value);
     }
 
-    /**
-     * Gets a translated message and replaces numbered placeholders.
-     *
-     * Example:
-     * language.get("broadcast.status.port", 25566)
-     */
     public String get(String path, Object... args) {
         return format(path, args);
     }
 
-    /**
-     * Formats a translated message.
-     *
-     * Kept for compatibility with the existing CommandHandler.
-     */
     public String format(String path, Object... args) {
         String message = get(path);
 
@@ -165,37 +148,16 @@ public class Language {
 
         return message;
     }
-
-    /**
-     * Gets a translated message with the standard prefix.
-     *
-     * Example:
-     *
-     * [BetterLANBroadcaster] Broadcast started.
-     */
     public String message(String path) {
         return get("prefix") + get(path);
     }
 
-    /**
-     * Gets a translated message with the standard prefix
-     * and replaces numbered placeholders.
-     */
     public String message(String path, Object... args) {
         return get("prefix") + format(path, args);
     }
-
-    /**
-     * Gets a translated message without the prefix.
-     */
     public String raw(String path) {
         return get(path);
     }
-
-    /**
-     * Gets a translated message without the prefix
-     * and replaces numbered placeholders.
-     */
     public String raw(String path, Object... args) {
         return format(path, args);
     }
