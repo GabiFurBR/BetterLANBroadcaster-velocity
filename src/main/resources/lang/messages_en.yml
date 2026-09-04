@@ -1,30 +1,55 @@
-# English messages for BetterLANBroadcaster
-prefix: "&7[&6BetterLAN&eBroadcaster&7] "
+# ============================================================
+# BetterLANBroadcaster - English
+# ============================================================
+
+prefix: "&7[&6BetterLANBroadcaster&7] "
+
+# ============================================================
+# Broadcast
+# ============================================================
+
 broadcast:
-  started: "&aLAN multicast broadcasting &a&lstarted&a."
-  stopped: "&cLAN multicast broadcasting &c&lstopped&c."
+  started: "&aLAN multicast broadcasting started."
+  stopped: "&cLAN multicast broadcasting stopped."
   already-running: "&eLAN multicast broadcasting is already running."
   already-stopped: "&eLAN multicast broadcasting is already stopped."
+  disabled: "&eAutomatic LAN broadcasting is disabled in the configuration."
+
   status:
     running: "&a&l● &aRunning"
     stopped: "&c&l○ &cStopped"
     motd: "&7MOTD: &f{0}"
     delay: "&7Delay: &f{0} ms"
     port: "&7Port: &f{0}"
+    interface: "&7Interface: &f{0}"
+
   motd-set: "&aMOTD updated to: &f{0}"
   delay-set: "&aBroadcast delay set to &f{0} ms&a."
   port-set: "&aBroadcast port set to &f{0}&a."
   port-set-auto: "&aBroadcast port set to auto-detect: &f{0}&a."
+  interface-set: "&aNetwork interface set to: &f{0}"
+
+# ============================================================
+# Configuration
+# ============================================================
 
 config:
   reloaded: "&aConfiguration reloaded successfully."
 
+# ============================================================
+# Debug
+# ============================================================
+
 debug:
-  on: "&aDebug mode enabled. Each broadcast packet will be logged to console."
-  off: "&cDebug mode disabled."
+  "on": "&aDebug mode enabled. Each broadcast packet will be logged to console."
+  "off": "&cDebug mode disabled."
   status-on: "&a&lEnabled"
   status-off: "&7Disabled"
   label: "&7Debug: &f{0}"
+
+# ============================================================
+# Help
+# ============================================================
 
 help:
   title: "&6===== BetterLANBroadcaster Help ====="
@@ -32,21 +57,41 @@ help:
   stop: "&e/blb stop &7- Stop LAN broadcasting"
   status: "&e/blb status &7- View broadcast status"
   setmotd: "&e/blb setmotd <MOTD> &7- Set broadcast MOTD"
-  setdelay: "&e/blb setdelay <ms> &7- Set broadcast delay (milliseconds)"
-  setport: "&e/blb setport <port|auto> &7- Set broadcast port (use 'auto' for auto-detect)"
-  debug: "&e/blb debug <on|off> &7- Enable/disable debug mode"
+  setdelay: "&e/blb setdelay <ms> &7- Set broadcast delay in milliseconds"
+  setport: "&e/blb setport <port|auto> &7- Set broadcast port"
+  setinterface: "&e/blb setinterface <auto|name|IPv4> &7- Set network interface"
+  debug: "&e/blb debug <on|off> &7- Enable or disable debug mode"
   reload: "&e/blb reload &7- Reload configuration"
   help: "&e/blb help &7- Show this help"
   version: "&e/blb version &7- Show plugin version"
   footer: "&6==================================="
 
+# ============================================================
+# Version
+# ============================================================
+
 version:
   line1: "&6BetterLANBroadcaster &ev{0}"
-  line2: "&7Author: &f{0}"
+  line2: "&7Authors: &f{0}"
   help-hint: "&7Type &f{0} &7for help"
+
+# ============================================================
+# Errors
+# ============================================================
 
 error:
   no-permission: "&cYou do not have permission to use this command."
-  invalid-delay: "&cInvalid delay. Please enter a positive number (milliseconds)."
+  invalid-delay: "&cInvalid delay. Please enter a positive number in milliseconds."
   invalid-port: "&cInvalid port. Please enter a number between 1 and 65535, or use 'auto'."
+  invalid-interface: "&cInvalid network interface. Use 'auto', an interface name, or an IPv4 address."
   invalid-syntax: "&cInvalid syntax. Usage: &f{0}"
+  start-failed: "&cFailed to start LAN broadcasting."
+  reload-failed: "&cFailed to reload BetterLANBroadcaster."
+  configuration-error: "&cA configuration error occurred. Check the console for details."
+  stop-failed: "&cFailed to stop LAN broadcasting."
+  invalid-motd: "&cInvalid MOTD. Please enter a non-empty MOTD."
+  config-save: "&cFailed to save the configuration."
+  interface-start: "&cFailed to restart LAN broadcasting with the selected network interface."
+  invalid-debug: "&cInvalid debug option. Use &fon&c or &foff&c."
+  config-reload: "&cFailed to reload the configuration."
+  reload-broadcast: "&cFailed to restart LAN broadcasting after reloading the configuration."

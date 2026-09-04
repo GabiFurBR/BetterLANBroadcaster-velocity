@@ -1,0 +1,98 @@
+# ============================================================
+# BetterLANBroadcaster - Português (Brasil)
+# ============================================================
+
+prefix: "&7[&6BetterLANBroadcaster&7] "
+
+# ============================================================
+# Broadcast
+# ============================================================
+
+broadcast:
+  started: "&aBroadcast multicast LAN iniciado."
+  stopped: "&cBroadcast multicast LAN parado."
+  already-running: "&eO broadcast multicast LAN já está em execução."
+  already-stopped: "&eO broadcast multicast LAN já está parado."
+  disabled: "&eO broadcast LAN automático está desativado na configuração."
+
+  status:
+    running: "&a&l● &aEm execução"
+    stopped: "&c&l○ &cParado"
+    motd: "&7MOTD: &f{0}"
+    delay: "&7Intervalo: &f{0} ms"
+    port: "&7Porta: &f{0}"
+    interface: "&7Interface: &f{0}"
+
+  motd-set: "&aMOTD atualizado para: &f{0}"
+  delay-set: "&aIntervalo do broadcast definido para &f{0} ms&a."
+  port-set: "&aPorta do broadcast definida para &f{0}&a."
+  port-set-auto: "&aPorta do broadcast definida como automática: &f{0}&a."
+  interface-set: "&aInterface de rede definida para: &f{0}"
+
+# ============================================================
+# Configuração
+# ============================================================
+
+config:
+  reloaded: "&aConfiguração recarregada com sucesso."
+
+# ============================================================
+# Debug
+# ============================================================
+
+debug:
+  "on": "&aModo de debug ativado. Cada pacote enviado será registrado no console."
+  "off": "&cModo de debug desativado."
+  status-on: "&a&lAtivado"
+  status-off: "&7Desativado"
+  label: "&7Debug: &f{0}"
+
+# ============================================================
+# Ajuda
+# ============================================================
+
+help:
+  title: "&6===== Ajuda do BetterLANBroadcaster ====="
+  start: "&e/blb start &7- Iniciar o broadcast LAN"
+  stop: "&e/blb stop &7- Parar o broadcast LAN"
+  status: "&e/blb status &7- Ver o status do broadcast"
+  setmotd: "&e/blb setmotd <MOTD> &7- Alterar a MOTD do broadcast"
+  setdelay: "&e/blb setdelay <ms> &7- Alterar o intervalo do broadcast em milissegundos"
+  setport: "&e/blb setport <porta|auto> &7- Definir a porta anunciada"
+  setinterface: "&e/blb setinterface <auto|nome|IPv4> &7- Definir a interface de rede"
+  debug: "&e/blb debug <on|off> &7- Ativar ou desativar o modo de debug"
+  reload: "&e/blb reload &7- Recarregar a configuração"
+  help: "&e/blb help &7- Mostrar esta ajuda"
+  version: "&e/blb version &7- Mostrar a versão do plugin"
+  footer: "&6==================================="
+
+# ============================================================
+# Versão
+# ============================================================
+
+version:
+  line1: "&6BetterLANBroadcaster &ev{0}"
+  line2: "&7Autores: &f{0}"
+  help-hint: "&7Digite &f{0} &7para ver a ajuda"
+
+# ============================================================
+# Erros
+# ============================================================
+
+error:
+  no-permission: "&cVocê não tem permissão para usar este comando."
+  invalid-delay: "&cIntervalo inválido. Informe um número positivo em milissegundos."
+  invalid-port: "&cPorta inválida. Informe um número entre 1 e 65535 ou use 'auto'."
+  invalid-interface: "&cInterface de rede inválida. Use 'auto', o nome da interface ou um endereço IPv4."
+  invalid-syntax: "&cSintaxe inválida. Uso: &f{0}"
+  start-failed: "&cNão foi possível iniciar o broadcast LAN."
+  reload-failed: "&cNão foi possível recarregar o BetterLANBroadcaster."
+  configuration-error: "&cOcorreu um erro na configuração. Verifique o console para mais detalhes."
+  stop-failed: "&cNão foi possível parar o broadcast LAN."
+  invalid-motd: "&cMOTD inválida. Informe uma MOTD que não esteja vazia."
+  config-save: "&cNão foi possível salvar a configuração."
+  interface-start: "&cNão foi possível reiniciar o broadcast LAN com a interface de rede selecionada."
+  invalid-debug: "&cOpção de debug inválida. Use &fon&c ou &foff&c."
+  config-reload: "&cNão foi possível recarregar a configuração."
+  reload-broadcast: "&cNão foi possível reiniciar o broadcast LAN após recarregar a configuração."
+

@@ -3,7 +3,12 @@
 # ============================================================
 
 # Language used by plugin messages.
-# Available: en, zh, br
+#
+# Available:
+#   en = English
+#   br = Brazilian Portuguese
+#   zh = Chinese
+#
 language: en
 
 
@@ -14,8 +19,9 @@ language: en
 # Enable debug logging.
 #
 # WARNING:
-# When enabled, every LAN broadcast packet will be logged
-# to the console.
+# When enabled, detailed LAN broadcast information will be
+# printed to the console.
+#
 debug: false
 
 
@@ -24,25 +30,59 @@ debug: false
 # ============================================================
 
 # Automatically start broadcasting when Velocity starts.
+#
+# true  = start automatically
+# false = do not start automatically
+#
 broadcast-enabled: false
+
 
 # Interval between LAN broadcast packets, in milliseconds.
 #
 # 1500 ms = 1.5 seconds
+#
 # This is the standard Minecraft LAN discovery interval.
+#
+# Minimum: 50 ms
+# Maximum: 86400000 ms (24 hours)
+#
 broadcast-delay-ms: 1500
 
 
-# Port advertised in the LAN server list.
+# Port advertised in the Minecraft LAN server list.
 #
 # 0 = automatically use the port where Velocity is listening.
 #
 # Example:
 # broadcast-port: 25566
 #
-# This is useful when you want the LAN entry to point to
-# a specific port instead of the Velocity listener.
+# This does NOT change the Velocity listening port.
+# It only changes the port announced through LAN discovery.
+#
 broadcast-port: 0
+
+
+# ============================================================
+# Network
+# ============================================================
+
+# Network interface used for LAN multicast.
+#
+# auto
+#   Automatically detects all suitable IPv4 multicast
+#   interfaces and broadcasts through them.
+#
+# Interface name
+#   Example:
+#   network-interface: ethernet_32774
+#
+# IPv4 address
+#   Example:
+#   network-interface: 192.168.0.56
+#
+# Using "auto" is recommended for most users.
+#
+network-interface: auto
 
 
 # ============================================================
@@ -54,25 +94,43 @@ broadcast-port: 0
 # Available placeholders:
 #
 # {online} = number of players currently connected to Velocity
-# {max}    = maximum number of players
+# {max}    = maximum number of players configured in Velocity
 #
-# Color codes:
+# Legacy color codes:
+#
 # &a, &b, &c, &e, etc.
 #
-# MiniMessage is also supported when available:
-# <green>, <red>, <bold>, etc.
+# MiniMessage is also supported:
+#
+# <green>
+# <red>
+# <bold>
+# etc.
+#
 motd: "A Minecraft Server"
 
 
 # ============================================================
-# Notes
+# LAN Discovery Protocol
 # ============================================================
+
+# BetterLANBroadcaster uses Minecraft's LAN multicast
+# discovery protocol.
 #
-# The plugin uses Minecraft's LAN multicast discovery protocol:
+# Multicast address:
+#   224.0.2.60
 #
-# Address: 224.0.2.60
-# Port:    4445
+# Multicast port:
+#   4445
 #
-# These values normally should NOT be changed.
+# These values are part of the Minecraft LAN discovery
+# protocol and normally should NOT be changed.
+#
+# Broadcast packet format:
+#
+# [MOTD]Server MOTD[/MOTD][AD]Server Port[/AD]
+#
+# Encoding:
+#   UTF-8
 #
 # ============================================================
