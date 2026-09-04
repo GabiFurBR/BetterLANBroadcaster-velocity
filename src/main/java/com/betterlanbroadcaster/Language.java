@@ -33,7 +33,6 @@ public class Language {
         try {
             InputStream input = getClass().getResourceAsStream(resourcePath);
 
-            // Idioma não encontrado → usa inglês
             if (input == null) {
 
                 plugin.getLogger().warn(

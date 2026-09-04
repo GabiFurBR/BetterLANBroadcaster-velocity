@@ -23,10 +23,6 @@ public class Config {
         this.configFile = dataDirectory.resolve("config.yml");
     }
 
-    // =========================================================
-    // LOAD
-    // =========================================================
-
     public void load() {
         try {
 
@@ -75,10 +71,6 @@ public class Config {
         }
     }
 
-    // =========================================================
-    // SAVE
-    // =========================================================
-
     public void save() {
 
         if (root == null) {
@@ -106,10 +98,6 @@ public class Config {
         }
     }
 
-    // =========================================================
-    // RELOAD
-    // =========================================================
-
     public void reload() {
 
         try {
@@ -128,10 +116,6 @@ public class Config {
             );
         }
     }
-
-    // =========================================================
-    // SET
-    // =========================================================
 
     public void set(String path, Object value) {
 
@@ -154,11 +138,6 @@ public class Config {
             );
         }
     }
-
-    // =========================================================
-    // CONFIGURAÇÕES
-    // =========================================================
-
     public String getLanguage() {
         return root.node("language").getString("en");
     }
@@ -182,11 +161,6 @@ public class Config {
     public String getMotd() {
         return root.node("motd").getString("A Minecraft Server");
     }
-
-    // =========================================================
-    // GETTERS
-    // =========================================================
-
     public ConfigurationNode getRoot() {
         return root;
     }

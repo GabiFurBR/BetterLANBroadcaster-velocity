@@ -12,11 +12,11 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 
 @Plugin(
-        id = "betterlanbroadcaster",
-        name = "BetterLANBroadcaster",
-        version = "1.1.0",
-        description = "BetterLANBroadcaster ported to Velocity",
-        authors = {"myxxr"}
+    id = "betterlanbroadcaster",
+    name = "BetterLANBroadcaster",
+    version = "1.0.2",
+    description = "Velocity port of BetterLANBroadcaster for LAN server discovery",
+    authors = {"myxxr", "GabiFurBR"}
 )
 public class BetterLANBroadcaster {
 
@@ -49,23 +49,17 @@ public class BetterLANBroadcaster {
             server.getCommandManager().metaBuilder("blb").build(),
             new CommandHandler(this)
         );
-        // Carrega a configuração
+
         config.load();
 
-        // Carrega o idioma
         language.load(config.getLanguage());
 
         logger.info("BetterLANBroadcaster-Velocity foi iniciado!");
-
-        // =====================================================
-        // MULTICAST BROADCAST
-        // =====================================================
 
         if (config.isBroadcastEnabled()) {
 
             int port = config.getBroadcastPort();
 
-            // 0 = usar a porta onde o Velocity está ouvindo
             if (port <= 0) {
                 port = server.getBoundAddress().getPort();
             }
@@ -77,7 +71,6 @@ public class BetterLANBroadcaster {
                     (int) config.getBroadcastDelayMs()
             );
 
-            // Ativa debug
             broadcaster.setDebug(config.isDebug());
 
             logger.info("Broadcasting servidor na porta " + port);
@@ -99,10 +92,6 @@ public class BetterLANBroadcaster {
 
         logger.info("BetterLANBroadcaster foi desligado.");
     }
-
-    // =========================================================
-    // GETTERS
-    // =========================================================
 
     public Logger getLogger() {
         return logger;
@@ -127,10 +116,6 @@ public class BetterLANBroadcaster {
     public int getMaxPlayers() {
         return 100;
     }
-
-    // =========================================================
-    // MINI MESSAGE
-    // =========================================================
 
     public String formatMiniMessage(String text) {
 
