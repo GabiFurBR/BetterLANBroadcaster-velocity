@@ -1,0 +1,78 @@
+# ============================================================
+# BetterLANBroadcaster - Configuration
+# ============================================================
+
+# Language used by plugin messages.
+# Available: en, zh, br
+language: en
+
+
+# ============================================================
+# General
+# ============================================================
+
+# Enable debug logging.
+#
+# WARNING:
+# When enabled, every LAN broadcast packet will be logged
+# to the console.
+debug: false
+
+
+# ============================================================
+# LAN Broadcast
+# ============================================================
+
+# Automatically start broadcasting when Velocity starts.
+broadcast-enabled: false
+
+# Interval between LAN broadcast packets, in milliseconds.
+#
+# 1500 ms = 1.5 seconds
+# This is the standard Minecraft LAN discovery interval.
+broadcast-delay-ms: 1500
+
+
+# Port advertised in the LAN server list.
+#
+# 0 = automatically use the port where Velocity is listening.
+#
+# Example:
+# broadcast-port: 25566
+#
+# This is useful when you want the LAN entry to point to
+# a specific port instead of the Velocity listener.
+broadcast-port: 0
+
+
+# ============================================================
+# Server List
+# ============================================================
+
+# MOTD displayed in the Minecraft LAN server list.
+#
+# Available placeholders:
+#
+# {online} = number of players currently connected to Velocity
+# {max}    = maximum number of players
+#
+# Color codes:
+# &a, &b, &c, &e, etc.
+#
+# MiniMessage is also supported when available:
+# <green>, <red>, <bold>, etc.
+motd: "A Minecraft Server"
+
+
+# ============================================================
+# Notes
+# ============================================================
+#
+# The plugin uses Minecraft's LAN multicast discovery protocol:
+#
+# Address: 224.0.2.60
+# Port:    4445
+#
+# These values normally should NOT be changed.
+#
+# ============================================================
