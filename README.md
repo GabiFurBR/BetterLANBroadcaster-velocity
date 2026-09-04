@@ -1,65 +1,77 @@
 # BetterLANBroadcaster-Velocity
 
-A Velocity proxy plugin that broadcasts Minecraft servers over LAN using UDP multicast, allowing Minecraft clients to discover the proxy without manually entering its address.
+A lightweight Velocity proxy plugin that allows Minecraft clients to discover a Velocity proxy through Minecraft's native LAN server discovery system.
 
-This project is a Velocity port of the original BetterLANBroadcaster project.
+BetterLANBroadcaster-Velocity broadcasts the proxy over UDP multicast, allowing it to appear automatically in the Multiplayer menu without requiring players to manually enter the server address.
+
+This project is a Velocity port and substantial modification of the original BetterLANBroadcaster project by myxxr.
 
 ## Features
 
-* LAN server discovery using Minecraft's UDP multicast protocol
-* Compatible with Minecraft's vanilla LAN discovery format
-* Multicast address: `224.0.2.60:4445`
-* Configurable broadcast MOTD
-* `{online}` and `{max}` MOTD placeholders
-* Configurable broadcast interval
-* Automatic or custom broadcast port
-* Start/stop broadcasting at runtime
-* Broadcast status command
-* Debug mode for packet logging
-* Multi-language message support
-* Configuration reload
-* Velocity-native command system
-* Java 21 support
+- Minecraft LAN server discovery using UDP multicast
+- Compatible with Minecraft's native LAN discovery format
+- Velocity-native implementation
+- Configurable broadcast MOTD
+- `{online}` and `{max}` MOTD placeholders
+- Configurable broadcast interval
+- Automatic or custom advertised server port
+- Automatic network interface detection
+- Manual network interface selection
+- Multiple network interface support
+- Start/stop broadcasting at runtime
+- Runtime configuration reload
+- Runtime broadcaster reconfiguration
+- Broadcast status command
+- Debug mode with multicast packet logging
+- Multi-language message support
+- English, Brazilian Portuguese, and Chinese translations
+- English fallback for missing translations
+- Java 21 support
 
 ## Requirements
 
-* Velocity 3.4.0 or newer
-* Java 21 or newer
+- Velocity 3.4.0 or newer
+- Java 21 or newer
+- A Minecraft client that supports Minecraft's native LAN server discovery
 
 ## Installation
 
 1. Download the latest `BetterLANBroadcaster-Velocity` `.jar` from the Releases page.
-2. Place the `.jar` file in the Velocity `plugins/` directory.
+2. Place the `.jar` file inside the Velocity `plugins/` directory.
 3. Start or restart your Velocity proxy.
-4. Configure the plugin in:
+4. The plugin will generate its configuration at:
 
-`plugins/betterlanbroadcaster/config.yml`
+   `plugins/betterlanbroadcaster/config.yml`
 
-5. Enable broadcasting if desired:
+5. Configure the plugin as desired.
+6. Set `broadcast-enabled: true` if you want LAN broadcasting to start automatically.
 
-```yaml
-broadcast-enabled: true
-```
+Minecraft clients on the same local network should then be able to discover the Velocity proxy through the Multiplayer menu.
 
-Minecraft clients on the same LAN should then be able to discover the proxy through the Multiplayer menu.
+> **Note:** LAN discovery uses UDP multicast. Network configuration, firewalls, routers, VPN adapters, and operating-system settings may prevent multicast packets from reaching other devices.
 
 ## Commands
 
-| Command                        | Description                     |
-| ------------------------------ | ------------------------------- |
-| `/blb`                         | Show plugin version information |
-| `/blb start`                   | Start LAN broadcasting          |
-| `/blb stop`                    | Stop LAN broadcasting           |
-| `/blb status`                  | Show current broadcast status   |
-| `/blb setmotd <MOTD>`          | Change the broadcast MOTD       |
-| `/blb setdelay <milliseconds>` | Change the broadcast interval   |
-| `/blb setport <port\|auto>`    | Set the broadcast port          |
-| `/blb debug <on\|off>`         | Enable or disable debug logging |
-| `/blb reload`                  | Reload the configuration        |
-| `/blb help`                    | Show available commands         |
-| `/blb version`                 | Show plugin version             |
+| Command | Description |
+| --- | --- |
+| `/blb` | Show plugin version information |
+| `/blb start` | Start LAN broadcasting |
+| `/blb stop` | Stop LAN broadcasting |
+| `/blb status` | Show current broadcast status |
+| `/blb setmotd <MOTD>` | Change the broadcast MOTD |
+| `/blb setdelay <milliseconds>` | Change the broadcast interval |
+| `/blb setport <port\|auto>` | Set the advertised LAN port |
+| `/blb setinterface <auto\|name\|IPv4>` | Select the network interface used for broadcasting |
+| `/blb debug <on\|off>` | Enable or disable debug logging |
+| `/blb reload` | Reload the configuration |
+| `/blb help` | Show available commands |
+| `/blb version` | Show plugin version |
 
-All administrative commands require the following permission:
+The command also supports the alias:
+
+`/betterlanbroadcaster`
+
+Administrative commands require:
 
 `betterlanbroadcaster.admin`
 
@@ -69,7 +81,7 @@ The configuration file is located at:
 
 `plugins/betterlanbroadcaster/config.yml`
 
-Example configuration:
+Example:
 
 ```yaml
 language: en
@@ -77,138 +89,9 @@ language: en
 debug: false
 
 broadcast-enabled: false
-broadcast-delay-ms: 1500
+broadcast-delay-ms: 100
 broadcast-port: 0
 
-motd: "A Minecraft Server"
-```
+network-interface: auto
 
-### Configuration Options
-
-| Option               | Description                                                | Default              |
-| -------------------- | ---------------------------------------------------------- | -------------------- |
-| `language`           | Message language                                           | `en`                 |
-| `debug`              | Enable debug logging                                       | `false`              |
-| `broadcast-enabled`  | Start broadcasting automatically                           | `false`              |
-| `broadcast-delay-ms` | Broadcast interval in milliseconds                         | `1500`               |
-| `broadcast-port`     | Port advertised to LAN clients; `0` uses the Velocity port | `0`                  |
-| `motd`               | MOTD shown in LAN discovery                                | `A Minecraft Server` |
-
-## Languages
-
-Language files are bundled inside the plugin JAR.
-
-Currently available:
-
-* `en` — English
-* `br` — Portuguese (Brazil)
-* `zh` — Chinese
-
-Set the desired language in `config.yml`:
-
-```yaml
-language: br
-```
-
-Language files are bundled with the plugin and are not copied to the plugin data directory.
-
-## MOTD Formatting
-
-The MOTD supports Minecraft color codes using `&` codes.
-
-Example:
-
-```yaml
-motd: "&6&l✦ &eBetterLAN &7- &aSurvival Server &6&l✦"
-```
-
-Supported formatting codes include:
-
-| Code        | Effect        |
-| ----------- | ------------- |
-| `&0` - `&9` | Colors        |
-| `&a` - `&f` | Colors        |
-| `&l`        | Bold          |
-| `&o`        | Italic        |
-| `&n`        | Underline     |
-| `&m`        | Strikethrough |
-| `&k`        | Obfuscated    |
-| `&r`        | Reset         |
-
-The following placeholders are also supported:
-
-* `{online}` — Current number of players connected to the proxy
-* `{max}` — Maximum player count
-
-## LAN Discovery Protocol
-
-BetterLANBroadcaster-Velocity uses the same UDP multicast discovery format used by Minecraft's LAN server browser.
-
-Protocol: UDP Multicast
-
-Address: `224.0.2.60`
-
-Port: `4445`
-
-Encoding: UTF-8
-
-Broadcast packets use the following format:
-
-`[MOTD]Server MOTD[/MOTD][AD]Server Port[/AD]`
-
-Example:
-
-`[MOTD]A Minecraft Server[/MOTD][AD]25565[/AD]`
-
-## Building
-
-Clone the repository:
-
-`git clone https://github.com/GabiFurBR/BetterLANBroadcaster-velocity.git`
-
-Then enter the project directory:
-
-`cd BetterLANBroadcaster-velocity`
-
-### Windows
-
-`.\mvnw.cmd clean package`
-
-### Linux / macOS
-
-`./mvnw clean package`
-
-The resulting plugin JAR will be generated in the `target/` directory.
-
-## Project Structure
-
-`src/main/java/com/betterlanbroadcaster/`
-
-* `BetterLANBroadcaster.java`
-* `CommandHandler.java`
-* `Config.java`
-* `Language.java`
-* `MulticastBroadcaster.java`
-
-`src/main/resources/`
-
-* `config.yml`
-* `lang/messages_br.yml`
-* `lang/messages_en.yml`
-* `lang/messages_zh.yml`
-
-## Credits
-
-This project is a Velocity port of the original BetterLANBroadcaster.
-
-Original project: `myxxr/BetterLANBroadcaster`
-
-Original author: Immyxxr
-
-Velocity port maintained by GabiFurBR.
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 (GPL v3).
-
-See `LICENSE` for details.
+motd: "&aA Minecraft Server"
