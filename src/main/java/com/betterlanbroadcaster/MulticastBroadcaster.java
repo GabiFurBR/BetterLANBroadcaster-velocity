@@ -582,32 +582,68 @@ public class MulticastBroadcaster {
     }
 
     private String resolveMotd() {
+        String motd = configuredMotd == null
+                ? ""
+                : configuredMotd;
 
-        String motd =
-                configuredMotd == null
-                        ? ""
-                        : configuredMotd;
+        int online = plugin.getServer()
+                .getPlayerCount();
 
-        int online =
-                plugin.getServer()
-                        .getPlayerCount();
+        int max = plugin.getServer()
+                .getConfiguration()
+                .getShowMaxPlayers();
 
-        int max =
-                plugin.getServer()
-                        .getConfiguration()
-                        .getShowMaxPlayers();
+        motd = motd
+                .replace("{online}", String.valueOf(online))
+                .replace("{max}", String.valueOf(max));
 
-        return motd
-                .replace(
-                        "{online}",
-                        String.valueOf(online)
-                )
-                .replace(
-                        "{max}",
-                        String.valueOf(max)
-                );
-    }
+        return translateLegacyColors(motd);
+        }
 
+        private String translateLegacyColors(String text) {
+        if (text == null || text.isEmpty()) {
+                return text;
+        }
+
+        StringBuilder result = new StringBuilder(text.length());
+
+        for (int i = 0; i < text.length(); i++) {
+                char current = text.charAt(i);
+
+                if (current == '&' && i + 1 < text.length()) {
+                char code = text.charAt(i + 1);
+
+                if (isLegacyColorCode(code)) {
+                        result.append('§');
+                        result.append(Character.toLowerCase(code));
+                        i++;
+                        continue;
+                }
+                }
+
+                result.append(current);
+        }
+
+        return result.toString();
+        }
+
+        private boolean isLegacyColorCode(char code) {
+        return (code >= '0' && code <= '9')
+                || (code >= 'a' && code <= 'f')
+                || (code >= 'A' && code <= 'F')
+                || code == 'k'
+                || code == 'K'
+                || code == 'l'
+                || code == 'L'
+                || code == 'm'
+                || code == 'M'
+                || code == 'n'
+                || code == 'N'
+                || code == 'o'
+                || code == 'O'
+                || code == 'r'
+                || code == 'R';
+        }
     private synchronized void closeSockets() {
 
         for (InterfaceSocket interfaceSocket :
