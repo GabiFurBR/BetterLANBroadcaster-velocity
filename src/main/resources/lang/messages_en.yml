@@ -1,8 +1,18 @@
+
 # ============================================================
 # BetterLANBroadcaster - English
 # ============================================================
 
 prefix: "&7[&6BetterLANBroadcaster&7] "
+
+# ============================================================
+# Plugin Lifecycle
+# ============================================================
+
+plugin:
+  initializing: "&eInitializing plugin..."
+  started: "&aPlugin started successfully!"
+  stopping: "&cDisabling plugin..."
 
 # ============================================================
 # Broadcast
@@ -19,12 +29,12 @@ broadcast:
     running: "&a&l● &aRunning"
     stopped: "&c&l○ &cStopped"
     motd: "&7MOTD: &f{0}"
-    delay: "&7Delay: &f{0} ms"
+    delay: "&7Interval: &f{0} ms"
     port: "&7Port: &f{0}"
     interface: "&7Interface: &f{0}"
 
   motd-set: "&aMOTD updated to: &f{0}"
-  delay-set: "&aBroadcast delay set to &f{0} ms&a."
+  delay-set: "&aBroadcast interval set to &f{0} ms&a."
   port-set: "&aBroadcast port set to &f{0}&a."
   port-set-auto: "&aBroadcast port set to auto-detect: &f{0}&a."
   interface-set: "&aNetwork interface set to: &f{0}"
@@ -41,7 +51,7 @@ config:
 # ============================================================
 
 debug:
-  "on": "&aDebug mode enabled. Each broadcast packet will be logged to console."
+  "on": "&aDebug mode enabled. Broadcast packets will be logged to the console."
   "off": "&cDebug mode disabled."
   status-on: "&a&lEnabled"
   status-off: "&7Disabled"
@@ -57,12 +67,12 @@ help:
   stop: "&e/blb stop &7- Stop LAN broadcasting"
   status: "&e/blb status &7- View broadcast status"
   setmotd: "&e/blb setmotd <MOTD> &7- Set broadcast MOTD"
-  setdelay: "&e/blb setdelay <ms> &7- Set broadcast delay in milliseconds"
+  setdelay: "&e/blb setdelay <ms> &7- Set broadcast interval in milliseconds"
   setport: "&e/blb setport <port|auto> &7- Set broadcast port"
   setinterface: "&e/blb setinterface <auto|name|IPv4> &7- Set network interface"
-  debug: "&e/blb debug <on|off> &7- Enable or disable debug mode"
+  debug: "&e/blb debug <on|off> &7- Toggle debug mode"
   reload: "&e/blb reload &7- Reload configuration"
-  help: "&e/blb help &7- Show this help"
+  help: "&e/blb help &7- Show this help message"
   version: "&e/blb version &7- Show plugin version"
   footer: "&6==================================="
 
@@ -81,7 +91,7 @@ version:
 
 error:
   no-permission: "&cYou do not have permission to use this command."
-  invalid-delay: "&cInvalid delay. Please enter a positive number in milliseconds."
+  invalid-delay: "&cInvalid interval. Please enter a positive number in milliseconds."
   invalid-port: "&cInvalid port. Please enter a number between 1 and 65535, or use 'auto'."
   invalid-interface: "&cInvalid network interface. Use 'auto', an interface name, or an IPv4 address."
   invalid-syntax: "&cInvalid syntax. Usage: &f{0}"

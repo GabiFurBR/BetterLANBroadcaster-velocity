@@ -1,0 +1,106 @@
+# ============================================================
+# BetterLANBroadcaster - Français
+# ============================================================
+
+prefix: "&7[&6BetterLANBroadcaster&7] "
+
+# ============================================================
+# Plugin Lifecycle
+# ============================================================
+
+plugin:
+  initializing: "&eInitialisation de BetterLANBroadcaster v{0}..."
+  started: "&aPlugin démarré avec succès !"
+  shutdown: "&cPlugin désactivé."
+
+# ============================================================
+# Diffusion
+# ============================================================
+
+broadcast:
+  started: "&aDiffusion multicast LAN démarrée."
+  stopped: "&cDiffusion multicast LAN arrêtée."
+  already-running: "&eLa diffusion multicast LAN est déjà en cours d'exécution."
+  already-stopped: "&eLa diffusion multicast LAN est déjà arrêtée."
+  disabled: "&eLa diffusion LAN automatique est désactivée dans la configuration."
+
+  status:
+    running: "&a&l● &aEn cours d'exécution"
+    stopped: "&c&l○ &cArrêté"
+    motd: "&7MOTD : &f{0}"
+    delay: "&7Intervalle : &f{0} ms"
+    port: "&7Port : &f{0}"
+    interface: "&7Interface : &f{0}"
+
+  motd-set: "&aMOTD mis à jour : &f{0}"
+  delay-set: "&aIntervalle de diffusion défini à &f{0} ms&a."
+  port-set: "&aPort de diffusion défini à &f{0}&a."
+  port-set-auto: "&aPort de diffusion défini en détection automatique : &f{0}&a."
+  interface-set: "&aInterface réseau définie sur : &f{0}"
+
+# ============================================================
+# Configuration
+# ============================================================
+
+config:
+  reloaded: "&aConfiguration rechargée avec succès."
+
+# ============================================================
+# Débogage
+# ============================================================
+
+debug:
+  "on": "&aMode de débogage activé. Chaque paquet sera enregistré dans la console."
+  "off": "&cMode de débogage désactivé."
+  status-on: "&a&lActivé"
+  status-off: "&7Désactivé"
+  label: "&7Débogage : &f{0}"
+
+# ============================================================
+# Aide
+# ============================================================
+
+help:
+  title: "&6===== Aide de BetterLANBroadcaster ====="
+  start: "&e/blb start &7- Démarrer la diffusion LAN"
+  stop: "&e/blb stop &7- Arrêter la diffusion LAN"
+  status: "&e/blb status &7- Voir le statut de la diffusion"
+  setmotd: "&e/blb setmotd <MOTD> &7- Définir le MOTD"
+  setdelay: "&e/blb setdelay <ms> &7- Définir l'intervalle en millisecondes"
+  setport: "&e/blb setport <port|auto> &7- Définir le port de diffusion"
+  setinterface: "&e/blb setinterface <auto|nom|IPv4> &7- Définir l'interface réseau"
+  debug: "&e/blb debug <on|off> &7- Activer ou désactiver le mode débogage"
+  reload: "&e/blb reload &7- Recharger la configuration"
+  help: "&e/blb help &7- Afficher cette aide"
+  version: "&e/blb version &7- Afficher la version du plugin"
+  footer: "&6==================================="
+
+# ============================================================
+# Version
+# ============================================================
+
+version:
+  line1: "&6BetterLANBroadcaster &ev{0}"
+  line2: "&7Auteurs : &f{0}"
+  help-hint: "&7Tapez &f{0} &7pour obtenir de l'aide"
+
+# ============================================================
+# Erreurs
+# ============================================================
+
+error:
+  no-permission: "&cVous n'avez pas la permission d'exécuter cette commande."
+  invalid-delay: "&cIntervalle invalide. Veuillez saisir un nombre positif en millisecondes."
+  invalid-port: "&cPort invalide. Saisissez un nombre entre 1 et 65535, ou utilisez 'auto'."
+  invalid-interface: "&cInterface réseau invalide. Utilisez 'auto', le nom de l'interface ou une adresse IPv4."
+  invalid-syntax: "&cSyntaxe invalide. Utilisation : &f{0}"
+  start-failed: "&cImpossible de démarrer la diffusion LAN."
+  reload-failed: "&cImpossible de recharger BetterLANBroadcaster."
+  configuration-error: "&cUne erreur de configuration est survenue. Vérifiez la console pour plus de détails."
+  stop-failed: "&cImpossible d'arrêter la diffusion LAN."
+  invalid-motd: "&cMOTD invalide. Veuillez saisir un MOTD non vide."
+  config-save: "&cImpossible d'enregistrer la configuration."
+  interface-start: "&cImpossible de redémarrer la diffusion LAN avec l'interface réseau sélectionnée."
+  invalid-debug: "&cOption de débogage invalide. Utilisez &fon&c ou &foff&c."
+  config-reload: "&cImpossible de recharger la configuration."
+  reload-broadcast: "&cImpossible de redémarrer la diffusion LAN après le rechargement de la configuration."

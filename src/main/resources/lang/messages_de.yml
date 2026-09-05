@@ -1,0 +1,106 @@
+# ============================================================
+# BetterLANBroadcaster - Deutsch
+# ============================================================
+
+prefix: "&7[&6BetterLANBroadcaster&7] "
+
+# ============================================================
+# Plugin Lifecycle
+# ============================================================
+
+plugin:
+  initializing: "&eBetterLANBroadcaster v{0} wird initialisiert..."
+  started: "&aPlugin erfolgreich gestartet!"
+  shutdown: "&cPlugin deaktiviert."
+
+# ============================================================
+# Broadcast
+# ============================================================
+
+broadcast:
+  started: "&aLAN-Multicast-Übertragung gestartet."
+  stopped: "&cLAN-Multicast-Übertragung gestoppt."
+  already-running: "&eDie LAN-Multicast-Übertragung läuft bereits."
+  already-stopped: "&eDie LAN-Multicast-Übertragung ist bereits gestoppt."
+  disabled: "&eAutomatische LAN-Übertragung ist in der Konfiguration deaktiviert."
+
+  status:
+    running: "&a&l● &aAktiv"
+    stopped: "&c&l○ &cGestoppt"
+    motd: "&7MOTD: &f{0}"
+    delay: "&7Intervall: &f{0} ms"
+    port: "&7Port: &f{0}"
+    interface: "&7Schnittstelle: &f{0}"
+
+  motd-set: "&aMOTD aktualisiert auf: &f{0}"
+  delay-set: "&aÜbertragungsintervall auf &f{0} ms &afestgelegt."
+  port-set: "&aÜbertragungsport auf &f{0} &afestgelegt."
+  port-set-auto: "&aÜbertragungsport auf automatische Erkennung festgelegt: &f{0}&a."
+  interface-set: "&aNetzwerkschnittstelle festgelegt auf: &f{0}"
+
+# ============================================================
+# Konfiguration
+# ============================================================
+
+config:
+  reloaded: "&aKonfiguration erfolgreich neu geladen."
+
+# ============================================================
+# Debug
+# ============================================================
+
+debug:
+  "on": "&aDebug-Modus aktiviert. Jedes Paket wird in der Konsole protokolliert."
+  "off": "&cDebug-Modus deaktiviert."
+  status-on: "&a&lAktiviert"
+  status-off: "&7Deaktiviert"
+  label: "&7Debug: &f{0}"
+
+# ============================================================
+# Hilfe
+# ============================================================
+
+help:
+  title: "&6===== BetterLANBroadcaster Hilfe ====="
+  start: "&e/blb start &7- LAN-Übertragung starten"
+  stop: "&e/blb stop &7- LAN-Übertragung stoppen"
+  status: "&e/blb status &7- Übertragungsstatus anzeigen"
+  setmotd: "&e/blb setmotd <MOTD> &7- MOTD festlegen"
+  setdelay: "&e/blb setdelay <ms> &7- Intervall in Millisekunden festlegen"
+  setport: "&e/blb setport <Port|auto> &7- Port festlegen"
+  setinterface: "&e/blb setinterface <auto|Name|IPv4> &7- Netzwerkschnittstelle festlegen"
+  debug: "&e/blb debug <on|off> &7- Debug-Modus ein- oder ausschalten"
+  reload: "&e/blb reload &7- Konfiguration neu laden"
+  help: "&e/blb help &7- Diese Hilfe anzeigen"
+  version: "&e/blb version &7- Plugin-Version anzeigen"
+  footer: "&6==================================="
+
+# ============================================================
+# Version
+# ============================================================
+
+version:
+  line1: "&6BetterLANBroadcaster &ev{0}"
+  line2: "&7Autoren: &f{0}"
+  help-hint: "&7Gib &f{0} &7ein, um Hilfe zu erhalten"
+
+# ============================================================
+# Fehler
+# ============================================================
+
+error:
+  no-permission: "&cDu hast keine Berechtigung, diesen Befehl auszuführen."
+  invalid-delay: "&cUngültiges Intervall. Bitte gib eine positive Zahl in Millisekunden ein."
+  invalid-port: "&cUngültiger Port. Bitte gib eine Zahl zwischen 1 und 65535 ein oder verwende 'auto'."
+  invalid-interface: "&cUngültige Netzwerkschnittstelle. Verwende 'auto', den Namen der Schnittstelle oder eine IPv4-Adresse."
+  invalid-syntax: "&cUngültige Syntax. Verwendung: &f{0}"
+  start-failed: "&cLAN-Übertragung konnte nicht gestartet werden."
+  reload-failed: "&cBetterLANBroadcaster konnte nicht neu geladen werden."
+  configuration-error: "&cEin Konfigurationsfehler ist aufgetreten. Überprüfe die Konsole für Details."
+  stop-failed: "&cLAN-Übertragung konnte nicht gestoppt werden."
+  invalid-motd: "&cUngültiges MOTD. Bitte gib ein nicht leeres MOTD ein."
+  config-save: "&cKonfiguration konnte nicht gespeichert werden."
+  interface-start: "&cLAN-Übertragung konnte mit der ausgewählten Schnittstelle nicht neu gestartet werden."
+  invalid-debug: "&cUngültige Debug-Option. Verwende &fon &coder &foff&c."
+  config-reload: "&cKonfiguration konnte nicht neu geladen werden."
+  reload-broadcast: "&cLAN-Übertragung konnte nach dem Neuladen der Konfiguration nicht neu gestartet werden."

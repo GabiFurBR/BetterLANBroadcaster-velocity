@@ -5,15 +5,24 @@
 prefix: "&7[&6BetterLANBroadcaster&7] "
 
 # ============================================================
-# Broadcast
+# Ciclo de Vida do Plugin
+# ============================================================
+
+plugin:
+  initializing: "&eInicializando BetterLANBroadcaster v{0}..."
+  started: "&aPlugin iniciado com sucesso!"
+  shutdown: "&cPlugin desativado com sucesso!"
+
+# ============================================================
+# Transmissão (Broadcast)
 # ============================================================
 
 broadcast:
-  started: "&aBroadcast multicast LAN iniciado."
-  stopped: "&cBroadcast multicast LAN parado."
-  already-running: "&eO broadcast multicast LAN já está em execução."
-  already-stopped: "&eO broadcast multicast LAN já está parado."
-  disabled: "&eO broadcast LAN automático está desativado na configuração."
+  started: "&aTransmissão multicast LAN iniciada."
+  stopped: "&cTransmissão multicast LAN parada."
+  already-running: "&eA transmissão multicast LAN já está em execução."
+  already-stopped: "&eA transmissão multicast LAN já está parada."
+  disabled: "&eA transmissão automática via LAN está desativada na configuração."
 
   status:
     running: "&a&l● &aEm execução"
@@ -24,9 +33,9 @@ broadcast:
     interface: "&7Interface: &f{0}"
 
   motd-set: "&aMOTD atualizado para: &f{0}"
-  delay-set: "&aIntervalo do broadcast definido para &f{0} ms&a."
-  port-set: "&aPorta do broadcast definida para &f{0}&a."
-  port-set-auto: "&aPorta do broadcast definida como automática: &f{0}&a."
+  delay-set: "&aIntervalo de transmissão definido para &f{0} ms&a."
+  port-set: "&aPorta de transmissão definida para &f{0}&a."
+  port-set-auto: "&aPorta de transmissão definida para detecção automática: &f{0}&a."
   interface-set: "&aInterface de rede definida para: &f{0}"
 
 # ============================================================
@@ -37,15 +46,15 @@ config:
   reloaded: "&aConfiguração recarregada com sucesso."
 
 # ============================================================
-# Debug
+# Depuração (Debug)
 # ============================================================
 
 debug:
-  "on": "&aModo de debug ativado. Cada pacote enviado será registrado no console."
-  "off": "&cModo de debug desativado."
+  "on": "&aModo de depuração ativado. Os pacotes de transmissão serão registrados no console."
+  "off": "&cModo de depuração desativado."
   status-on: "&a&lAtivado"
   status-off: "&7Desativado"
-  label: "&7Debug: &f{0}"
+  label: "&7Depuração: &f{0}"
 
 # ============================================================
 # Ajuda
@@ -53,16 +62,16 @@ debug:
 
 help:
   title: "&6===== Ajuda do BetterLANBroadcaster ====="
-  start: "&e/blb start &7- Iniciar o broadcast LAN"
-  stop: "&e/blb stop &7- Parar o broadcast LAN"
-  status: "&e/blb status &7- Ver o status do broadcast"
-  setmotd: "&e/blb setmotd <MOTD> &7- Alterar a MOTD do broadcast"
-  setdelay: "&e/blb setdelay <ms> &7- Alterar o intervalo do broadcast em milissegundos"
-  setport: "&e/blb setport <porta|auto> &7- Definir a porta anunciada"
+  start: "&e/blb start &7- Iniciar a transmissão LAN"
+  stop: "&e/blb stop &7- Parar a transmissão LAN"
+  status: "&e/blb status &7- Ver o status da transmissão"
+  setmotd: "&e/blb setmotd <MOTD> &7- Definir o MOTD da transmissão"
+  setdelay: "&e/blb setdelay <ms> &7- Definir o intervalo em milissegundos"
+  setport: "&e/blb setport <porta|auto> &7- Definir a porta de transmissão"
   setinterface: "&e/blb setinterface <auto|nome|IPv4> &7- Definir a interface de rede"
-  debug: "&e/blb debug <on|off> &7- Ativar ou desativar o modo de debug"
+  debug: "&e/blb debug <on|off> &7- Alternar o modo de depuração"
   reload: "&e/blb reload &7- Recarregar a configuração"
-  help: "&e/blb help &7- Mostrar esta ajuda"
+  help: "&e/blb help &7- Mostrar esta mensagem de ajuda"
   version: "&e/blb version &7- Mostrar a versão do plugin"
   footer: "&6==================================="
 
@@ -73,7 +82,7 @@ help:
 version:
   line1: "&6BetterLANBroadcaster &ev{0}"
   line2: "&7Autores: &f{0}"
-  help-hint: "&7Digite &f{0} &7para ver a ajuda"
+  help-hint: "&7Digite &f{0} &7para obter ajuda"
 
 # ============================================================
 # Erros
@@ -81,18 +90,17 @@ version:
 
 error:
   no-permission: "&cVocê não tem permissão para usar este comando."
-  invalid-delay: "&cIntervalo inválido. Informe um número positivo em milissegundos."
-  invalid-port: "&cPorta inválida. Informe um número entre 1 e 65535 ou use 'auto'."
+  invalid-delay: "&cIntervalo inválido. Por favor, insira um número positivo em milissegundos."
+  invalid-port: "&cPorta inválida. Por favor, insira um número entre 1 e 65535 ou use 'auto'."
   invalid-interface: "&cInterface de rede inválida. Use 'auto', o nome da interface ou um endereço IPv4."
-  invalid-syntax: "&cSintaxe inválida. Uso: &f{0}"
-  start-failed: "&cNão foi possível iniciar o broadcast LAN."
-  reload-failed: "&cNão foi possível recarregar o BetterLANBroadcaster."
-  configuration-error: "&cOcorreu um erro na configuração. Verifique o console para mais detalhes."
-  stop-failed: "&cNão foi possível parar o broadcast LAN."
-  invalid-motd: "&cMOTD inválida. Informe uma MOTD que não esteja vazia."
-  config-save: "&cNão foi possível salvar a configuração."
-  interface-start: "&cNão foi possível reiniciar o broadcast LAN com a interface de rede selecionada."
-  invalid-debug: "&cOpção de debug inválida. Use &fon&c ou &foff&c."
-  config-reload: "&cNão foi possível recarregar a configuração."
-  reload-broadcast: "&cNão foi possível reiniciar o broadcast LAN após recarregar a configuração."
-
+  invalid-syntax: "&cSintaxe inválida. Uso correto: &f{0}"
+  start-failed: "&cFalha ao iniciar a transmissão LAN."
+  reload-failed: "&cFalha ao recarregar o BetterLANBroadcaster."
+  configuration-error: "&cOcorreu um erro de configuração. Verifique o console para mais detalhes."
+  stop-failed: "&cFalha ao parar a transmissão LAN."
+  invalid-motd: "&cMOTD inválido. Por favor, insira um MOTD não vazio."
+  config-save: "&cFalha ao salvar a configuração."
+  interface-start: "&cFalha ao reiniciar a transmissão LAN com a interface de rede selecionada."
+  invalid-debug: "&cOpção de depuração inválida. Use &fon&c ou &foff&c."
+  config-reload: "&cFalha ao recarregar a configuração."
+  reload-broadcast: "&cFalha ao reiniciar a transmissão LAN após recarregar a configuração."

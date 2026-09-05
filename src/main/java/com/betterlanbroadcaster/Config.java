@@ -46,76 +46,42 @@ public class Config {
             root = createLoader().load();
 
             if (root == null || root.virtual()) {
-                plugin.getLogger().warn(
-                        "A configuração carregada está vazia. Usando valores padrão."
-                );
-
+                plugin.getLogger().warn("A configuração carregada está vazia. Usando valores padrão.");
                 root = createLoader().createNode();
-
                 applyDefaults();
-
-                if (!save()) {
-                    return false;
-                }
-
-                return true;
+                return save();
             }
 
             boolean changed = validateAndApplyDefaults();
-
             if (changed) {
                 save();
             }
 
-            plugin.getLogger().debug(
-                    "Configuração carregada de {}.",
-                    configFile
-            );
-
+            plugin.getLogger().debug("Configuração carregada de {}.", configFile);
             return true;
-
         } catch (IOException e) {
-            plugin.getLogger().error(
-                    "Não foi possível carregar a configuração em {}.",
-                    configFile,
-                    e
-            );
-
+            plugin.getLogger().error("Não foi possível carregar a configuração em {}.", configFile, e);
             return false;
         }
     }
+
     public boolean reload() {
         return load();
     }
 
     public boolean save() {
         if (root == null) {
-            plugin.getLogger().warn(
-                    "Não foi possível salvar a configuração porque ela ainda não foi carregada."
-            );
-
+            plugin.getLogger().warn("Não foi possível salvar a configuração porque ela ainda não foi carregada.");
             return false;
         }
 
         try {
             createDataDirectory();
-
             createLoader().save(root);
-
-            plugin.getLogger().debug(
-                    "Configuração salva em {}.",
-                    configFile
-            );
-
+            plugin.getLogger().debug("Configuração salva em {}.", configFile);
             return true;
-
         } catch (IOException e) {
-            plugin.getLogger().error(
-                    "Não foi possível salvar a configuração em {}.",
-                    configFile,
-                    e
-            );
-
+            plugin.getLogger().error("Não foi possível salvar a configuração em {}.", configFile, e);
             return false;
         }
     }
@@ -129,22 +95,14 @@ public class Config {
             return;
         }
 
-        try (InputStream input =
-                     Config.class.getResourceAsStream(CONFIG_RESOURCE)) {
-
+        try (InputStream input = Config.class.getResourceAsStream(CONFIG_RESOURCE)) {
             if (input == null) {
-                throw new IOException(
-                        "O recurso padrão config.yml não foi encontrado dentro do plugin."
-                );
+                throw new IOException("O recurso padrão config.yml não foi encontrado dentro do plugin.");
             }
-
             Files.copy(input, configFile);
         }
 
-        plugin.getLogger().info(
-                "Configuração padrão criada em {}.",
-                configFile
-        );
+        plugin.getLogger().info("Configuração padrão criada em {}.", configFile);
     }
 
     private YamlConfigurationLoader createLoader() {
@@ -165,9 +123,7 @@ public class Config {
         root.node("motd").set(DEFAULT_MOTD);
     }
 
-    private boolean validateAndApplyDefaults()
-            throws SerializationException {
-
+    private boolean validateAndApplyDefaults() throws SerializationException {
         boolean changed = false;
         String language;
 
@@ -178,34 +134,18 @@ public class Config {
         }
 
         if (language == null || language.isBlank()) {
-
             root.node("language").set(DEFAULT_LANGUAGE);
             changed = true;
-
         } else {
-
             language = language.trim().toLowerCase(Locale.ROOT);
-
-            if (!language.equals("en")
-                    && !language.equals("br")
-                    && !language.equals("zh")) {
-
-                plugin.getLogger().warn(
-                        "Idioma '{}' não é suportado. Usando '{}'.",
-                        language,
-                        DEFAULT_LANGUAGE
-                );
-
-                root.node("language").set(DEFAULT_LANGUAGE);
-                changed = true;
-
+            if (!language.equals("en") && !language.equals("br") && !language.equals("zh") && !language.equals("es") && !language.equals("de") && !language.equals("fr") && !language.equals("ja") && !language.equals("ru")) {
+                    plugin.getLogger().warn("Language '{}' is not supported. Falling back to '{}'.", language, DEFAULT_LANGUAGE);
+                    root.node("language").set(DEFAULT_LANGUAGE);
+                    changed = true;
             } else {
-
                 String currentLanguage;
-
                 try {
-                    currentLanguage =
-                            root.node("language").get(String.class);
+                    currentLanguage = root.node("language").get(String.class);
                 } catch (SerializationException e) {
                     currentLanguage = "";
                 }
@@ -223,141 +163,71 @@ public class Config {
         }
 
         if (root.node("broadcast-enabled").virtual()) {
-            root.node("broadcast-enabled")
-                    .set(DEFAULT_BROADCAST_ENABLED);
-
+            root.node("broadcast-enabled").set(DEFAULT_BROADCAST_ENABLED);
             changed = true;
         }
 
         Long delay;
-
         try {
-            delay = root.node("broadcast-delay-ms")
-                    .get(Long.class);
+            delay = root.node("broadcast-delay-ms").get(Long.class);
         } catch (SerializationException e) {
             delay = null;
         }
 
         if (delay == null) {
-
-            plugin.getLogger().warn(
-                    "broadcast-delay-ms inválido ou ausente. Usando {} ms.",
-                    DEFAULT_BROADCAST_DELAY_MS
-            );
-
-            root.node("broadcast-delay-ms")
-                    .set(DEFAULT_BROADCAST_DELAY_MS);
-
+            plugin.getLogger().warn("broadcast-delay-ms inválido ou ausente. Usando {} ms.", DEFAULT_BROADCAST_DELAY_MS);
+            root.node("broadcast-delay-ms").set(DEFAULT_BROADCAST_DELAY_MS);
             changed = true;
-
         } else if (delay < MIN_DELAY_MS) {
-
-            plugin.getLogger().warn(
-                    "broadcast-delay-ms={} está abaixo do mínimo de {} ms. Ajustando para {} ms.",
-                    delay,
-                    MIN_DELAY_MS,
-                    MIN_DELAY_MS
-            );
-
-            root.node("broadcast-delay-ms")
-                    .set(MIN_DELAY_MS);
-
+            plugin.getLogger().warn("broadcast-delay-ms={} está abaixo do mínimo de {} ms. Ajustando para {} ms.", delay, MIN_DELAY_MS, MIN_DELAY_MS);
+            root.node("broadcast-delay-ms").set(MIN_DELAY_MS);
             changed = true;
-
         } else if (delay > MAX_DELAY_MS) {
-
-            plugin.getLogger().warn(
-                    "broadcast-delay-ms={} excede o máximo de {} ms. Ajustando para {} ms.",
-                    delay,
-                    MAX_DELAY_MS,
-                    MAX_DELAY_MS
-            );
-
-            root.node("broadcast-delay-ms")
-                    .set(MAX_DELAY_MS);
-
+            plugin.getLogger().warn("broadcast-delay-ms={} excede o máximo de {} ms. Ajustando para {} ms.", delay, MAX_DELAY_MS, MAX_DELAY_MS);
+            root.node("broadcast-delay-ms").set(MAX_DELAY_MS);
             changed = true;
         }
-        Integer port;
 
+        Integer port;
         try {
-            port = root.node("broadcast-port")
-                    .get(Integer.class);
+            port = root.node("broadcast-port").get(Integer.class);
         } catch (SerializationException e) {
             port = null;
         }
 
-        if (port == null) {
-
-            plugin.getLogger().warn(
-                    "broadcast-port inválida ou ausente. Usando 0 (porta automática)."
-            );
-
-            root.node("broadcast-port")
-                    .set(DEFAULT_BROADCAST_PORT);
-
-            changed = true;
-
-        } else if (port < 0 || port > 65535) {
-
-            plugin.getLogger().warn(
-                    "broadcast-port={} está fora do intervalo válido. Usando 0.",
-                    port
-            );
-
-            root.node("broadcast-port")
-                    .set(DEFAULT_BROADCAST_PORT);
-
+        if (port == null || port < 0 || port > 65535) {
+            plugin.getLogger().warn("broadcast-port inválida ou fora do intervalo. Usando 0.");
+            root.node("broadcast-port").set(DEFAULT_BROADCAST_PORT);
             changed = true;
         }
 
         String networkInterface;
-
         try {
-            networkInterface =
-                    root.node("network-interface")
-                            .get(String.class);
+            networkInterface = root.node("network-interface").get(String.class);
         } catch (SerializationException e) {
             networkInterface = null;
         }
 
-        if (networkInterface == null
-                || networkInterface.isBlank()) {
-
-            plugin.getLogger().warn(
-                    "network-interface está ausente. Usando 'auto'."
-            );
-
-            root.node("network-interface")
-                    .set(DEFAULT_NETWORK_INTERFACE);
-
+        if (networkInterface == null || networkInterface.isBlank()) {
+            plugin.getLogger().warn("network-interface está ausente. Usando 'auto'.");
+            root.node("network-interface").set(DEFAULT_NETWORK_INTERFACE);
             changed = true;
-
         } else {
-
             networkInterface = networkInterface.trim();
-
             String currentInterface;
-
             try {
-                currentInterface =
-                        root.node("network-interface")
-                                .get(String.class);
+                currentInterface = root.node("network-interface").get(String.class);
             } catch (SerializationException e) {
                 currentInterface = "";
             }
 
             if (!networkInterface.equals(currentInterface)) {
-
-                root.node("network-interface")
-                        .set(networkInterface);
-
+                root.node("network-interface").set(networkInterface);
                 changed = true;
             }
         }
 
         String motd;
-
         try {
             motd = root.node("motd").get(String.class);
         } catch (SerializationException e) {
@@ -365,13 +235,8 @@ public class Config {
         }
 
         if (motd == null) {
-
-            plugin.getLogger().warn(
-                    "motd está ausente. Usando o MOTD padrão."
-            );
-
+            plugin.getLogger().warn("motd está ausente. Usando o MOTD padrão.");
             root.node("motd").set(DEFAULT_MOTD);
-
             changed = true;
         }
 
@@ -379,407 +244,137 @@ public class Config {
     }
 
     public String getLanguage() {
-
-        if (root == null) {
-            return DEFAULT_LANGUAGE;
-        }
-
+        if (root == null) return DEFAULT_LANGUAGE;
         try {
-
-            String language =
-                    root.node("language")
-                            .get(String.class);
-
-            if (language == null || language.isBlank()) {
-                return DEFAULT_LANGUAGE;
-            }
-
-            return language.trim().toLowerCase(Locale.ROOT);
-
+            String language = root.node("language").get(String.class);
+            return (language == null || language.isBlank()) ? DEFAULT_LANGUAGE : language.trim().toLowerCase(Locale.ROOT);
         } catch (SerializationException e) {
-
             return DEFAULT_LANGUAGE;
         }
     }
 
     public boolean isDebug() {
-
-        if (root == null) {
-            return DEFAULT_DEBUG;
-        }
-
-        return root.node("debug")
-                .getBoolean(DEFAULT_DEBUG);
+        return root != null && root.node("debug").getBoolean(DEFAULT_DEBUG);
     }
 
     public boolean isBroadcastEnabled() {
-
-        if (root == null) {
-            return DEFAULT_BROADCAST_ENABLED;
-        }
-
-        return root.node("broadcast-enabled")
-                .getBoolean(DEFAULT_BROADCAST_ENABLED);
+        return root != null && root.node("broadcast-enabled").getBoolean(DEFAULT_BROADCAST_ENABLED);
     }
 
     public long getBroadcastDelayMs() {
-
-        if (root == null) {
-            return DEFAULT_BROADCAST_DELAY_MS;
-        }
-
+        if (root == null) return DEFAULT_BROADCAST_DELAY_MS;
         try {
-
-            Long delay =
-                    root.node("broadcast-delay-ms")
-                            .get(Long.class);
-
-            if (delay == null) {
-                return DEFAULT_BROADCAST_DELAY_MS;
-            }
-
-            return Math.max(
-                    MIN_DELAY_MS,
-                    Math.min(MAX_DELAY_MS, delay)
-            );
-
+            Long delay = root.node("broadcast-delay-ms").get(Long.class);
+            if (delay == null) return DEFAULT_BROADCAST_DELAY_MS;
+            return Math.max(MIN_DELAY_MS, Math.min(MAX_DELAY_MS, delay));
         } catch (SerializationException e) {
-
-            plugin.getLogger().warn(
-                    "Não foi possível ler broadcast-delay-ms. Usando {} ms.",
-                    DEFAULT_BROADCAST_DELAY_MS
-            );
-
+            plugin.getLogger().warn("Não foi possível ler broadcast-delay-ms. Usando {} ms.", DEFAULT_BROADCAST_DELAY_MS);
             return DEFAULT_BROADCAST_DELAY_MS;
         }
     }
 
     public int getBroadcastPort() {
-
-        if (root == null) {
-            return DEFAULT_BROADCAST_PORT;
-        }
-
+        if (root == null) return DEFAULT_BROADCAST_PORT;
         try {
-
-            Integer port =
-                    root.node("broadcast-port")
-                            .get(Integer.class);
-
-            if (port == null) {
-                return DEFAULT_BROADCAST_PORT;
-            }
-
-            if (port < 0 || port > 65535) {
-                return DEFAULT_BROADCAST_PORT;
-            }
-
+            Integer port = root.node("broadcast-port").get(Integer.class);
+            if (port == null || port < 0 || port > 65535) return DEFAULT_BROADCAST_PORT;
             return port;
-
         } catch (SerializationException e) {
-
-            plugin.getLogger().warn(
-                    "Não foi possível ler broadcast-port. Usando 0."
-            );
-
+            plugin.getLogger().warn("Não foi possível ler broadcast-port. Usando 0.");
             return DEFAULT_BROADCAST_PORT;
         }
     }
 
     public String getNetworkInterface() {
-
-        if (root == null) {
-            return DEFAULT_NETWORK_INTERFACE;
-        }
-
+        if (root == null) return DEFAULT_NETWORK_INTERFACE;
         try {
-
-            String networkInterface =
-                    root.node("network-interface")
-                            .get(String.class);
-
-            if (networkInterface == null
-                    || networkInterface.isBlank()) {
-
-                return DEFAULT_NETWORK_INTERFACE;
-            }
-
-            return networkInterface.trim();
-
+            String networkInterface = root.node("network-interface").get(String.class);
+            return (networkInterface == null || networkInterface.isBlank()) ? DEFAULT_NETWORK_INTERFACE : networkInterface.trim();
         } catch (SerializationException e) {
-
             return DEFAULT_NETWORK_INTERFACE;
         }
     }
 
     public String getMotd() {
-
-        if (root == null) {
-            return DEFAULT_MOTD;
-        }
-
+        if (root == null) return DEFAULT_MOTD;
         try {
-
-            String motd =
-                    root.node("motd")
-                            .get(String.class);
-
-            if (motd == null) {
-                return DEFAULT_MOTD;
-            }
-
-            return motd;
-
+            String motd = root.node("motd").get(String.class);
+            return motd == null ? DEFAULT_MOTD : motd;
         } catch (SerializationException e) {
-
             return DEFAULT_MOTD;
         }
     }
 
     public boolean set(String path, Object value) {
-
         if (root == null) {
-
-            plugin.getLogger().warn(
-                    "Não foi possível alterar '{}' porque a configuração ainda não foi carregada.",
-                    path
-            );
-
+            plugin.getLogger().warn("Não foi possível alterar '{}' porque a configuração ainda não foi carregada.", path);
             return false;
         }
-
-        if (path == null || path.isBlank()) {
-            return false;
-        }
+        if (path == null || path.isBlank()) return false;
 
         try {
-
-            String[] parts = path.split("\\.");
-
-            root.node((Object[]) parts).set(value);
-
+            root.node((Object[]) path.split("\\.")).set(value);
             return save();
-
         } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar a configuração '{}'.",
-                    path,
-                    e
-            );
-
+            plugin.getLogger().error("Não foi possível alterar a configuração '{}'.", path, e);
             return false;
         }
     }
 
     public boolean setLanguage(String language) {
-
-        if (root == null) {
-            return false;
-        }
-
-        if (language == null || language.isBlank()) {
-            return false;
-        }
-
+        if (root == null || language == null || language.isBlank()) return false;
         language = language.trim().toLowerCase(Locale.ROOT);
-
-        if (!language.equals("en")
-                && !language.equals("br")
-                && !language.equals("zh")) {
-            return false;
-        }
+        if (!language.equals("en") && !language.equals("br") && !language.equals("zh")) return false;
 
         try {
-
             root.node("language").set(language);
-
             return save();
-
         } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar o idioma.",
-                    e
-            );
-
+            plugin.getLogger().error("Não foi possível alterar o idioma.", e);
             return false;
         }
     }
 
     public boolean setDebug(boolean debug) {
-
-        if (root == null) {
-            return false;
-        }
-
-        try {
-
-            root.node("debug").set(debug);
-
-            return save();
-
-        } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar debug.",
-                    e
-            );
-
-            return false;
-        }
+        return updateNode("debug", debug, "debug");
     }
 
     public boolean setBroadcastEnabled(boolean enabled) {
-
-        if (root == null) {
-            return false;
-        }
-
-        try {
-
-            root.node("broadcast-enabled")
-                    .set(enabled);
-
-            return save();
-
-        } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar broadcast-enabled.",
-                    e
-            );
-
-            return false;
-        }
+        return updateNode("broadcast-enabled", enabled, "broadcast-enabled");
     }
 
     public boolean setBroadcastDelayMs(long delayMs) {
-
-        if (root == null) {
-            return false;
-        }
-
-        if (delayMs < MIN_DELAY_MS
-                || delayMs > MAX_DELAY_MS) {
-
-            return false;
-        }
-
-        try {
-
-            root.node("broadcast-delay-ms")
-                    .set(delayMs);
-
-            return save();
-
-        } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar broadcast-delay-ms.",
-                    e
-            );
-
-            return false;
-        }
+        if (delayMs < MIN_DELAY_MS || delayMs > MAX_DELAY_MS) return false;
+        return updateNode("broadcast-delay-ms", delayMs, "broadcast-delay-ms");
     }
 
     public boolean setBroadcastPort(int port) {
-
-        if (root == null) {
-            return false;
-        }
-
-        if (port < 0 || port > 65535) {
-            return false;
-        }
-
-        try {
-
-            root.node("broadcast-port")
-                    .set(port);
-
-            return save();
-
-        } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar broadcast-port.",
-                    e
-            );
-
-            return false;
-        }
+        if (port < 0 || port > 65535) return false;
+        return updateNode("broadcast-port", port, "broadcast-port");
     }
 
     public boolean setNetworkInterface(String networkInterface) {
-
-        if (root == null) {
-            return false;
-        }
-
-        if (networkInterface == null
-                || networkInterface.isBlank()) {
-
-            return false;
-        }
-
-        networkInterface = networkInterface.trim();
-
-        try {
-
-            root.node("network-interface")
-                    .set(networkInterface);
-
-            return save();
-
-        } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar network-interface.",
-                    e
-            );
-
-            return false;
-        }
+        if (networkInterface == null || networkInterface.isBlank()) return false;
+        return updateNode("network-interface", networkInterface.trim(), "network-interface");
     }
 
     public boolean setMotd(String motd) {
+        if (motd == null) return false;
+        return updateNode("motd", motd, "MOTD");
+    }
 
-        if (root == null) {
-            return false;
-        }
-
-        if (motd == null) {
-            return false;
-        }
-
+    private boolean updateNode(String path, Object value, String label) {
+        if (root == null) return false;
         try {
-
-            root.node("motd").set(motd);
-
+            root.node(path).set(value);
             return save();
-
         } catch (SerializationException e) {
-
-            plugin.getLogger().error(
-                    "Não foi possível alterar o MOTD.",
-                    e
-            );
-
+            plugin.getLogger().error("Não foi possível alterar {}.", label, e);
             return false;
         }
     }
 
-    public Path getConfigFile() {
-        return configFile;
-    }
-
-    public Path getDataDirectory() {
-        return dataDirectory;
-    }
-
-    public CommentedConfigurationNode getRoot() {
-        return root;
-    }
+    public Path getConfigFile() { return configFile; }
+    public Path getDataDirectory() { return dataDirectory; }
+    public CommentedConfigurationNode getRoot() { return root; }
 }

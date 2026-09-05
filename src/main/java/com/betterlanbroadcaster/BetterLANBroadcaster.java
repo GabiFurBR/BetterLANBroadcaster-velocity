@@ -45,18 +45,13 @@ public class BetterLANBroadcaster {
         this.language = new Language(this);
         this.initialized = false;
     }
+
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
-        logger.info(
-                "Inicializando BetterLANBroadcaster-Velocity {}...",
-                VERSION
-        );
+        logger.info(language.cleanColors(language.get("plugin.initializing", VERSION)));
 
         if (!config.load()) {
-            logger.error(
-                    "Não foi possível carregar a configuração. "
-                            + "O plugin será inicializado com os valores padrão."
-            );
+            logger.error(language.cleanColors(language.get("config.load_failed_default")));
         }
 
         language.load(config.getLanguage());
@@ -65,16 +60,14 @@ public class BetterLANBroadcaster {
 
         initialized = true;
 
-        logger.info("BetterLANBroadcaster-Velocity foi iniciado!");
+        logger.info(language.cleanColors(language.get("plugin.started")));
 
         if (config.isBroadcastEnabled()) {
             if (!startBroadcaster()) {
-                logger.error(
-                        "Não foi possível iniciar o LAN Broadcast."
-                );
+                logger.error(language.cleanColors(language.get("broadcast.start_failed")));
             }
         } else {
-            logger.info("LAN Broadcast está desativado.");
+            logger.info(language.cleanColors(language.get("broadcast.disabled")));
         }
     }
 
@@ -83,9 +76,7 @@ public class BetterLANBroadcaster {
         initialized = false;
         shutdownBroadcaster();
 
-        logger.info(
-                "BetterLANBroadcaster foi desligado."
-        );
+        logger.info(language.cleanColors(language.get("plugin.shutdown")));
     }
 
     private void registerCommands() {
@@ -101,18 +92,12 @@ public class BetterLANBroadcaster {
                 handler
         );
 
-        logger.debug(
-                "Comandos /blb e /betterlanbroadcaster registrados."
-        );
+        logger.debug(language.cleanColors(language.get("commands.registered")));
     }
 
     public synchronized boolean startBroadcaster() {
-
         if (!initialized) {
-            logger.warn(
-                    "Não é possível iniciar o broadcaster antes "
-                            + "da inicialização do plugin."
-            );
+            logger.warn(language.cleanColors(language.get("broadcast.not_initialized")));
             return false;
         }
 
@@ -126,7 +111,6 @@ public class BetterLANBroadcaster {
         }
 
         int configuredPort = config.getBroadcastPort();
-
         int advertisedPort = configuredPort;
 
         if (advertisedPort == 0) {
@@ -136,7 +120,6 @@ public class BetterLANBroadcaster {
         }
 
         long configuredDelay = config.getBroadcastDelayMs();
-
         int delayMs = (int) configuredDelay;
 
         try {
@@ -148,25 +131,16 @@ public class BetterLANBroadcaster {
                     config.getNetworkInterface()
             );
 
-            broadcaster.setDebug(
-                    config.isDebug()
-            );
+            broadcaster.setDebug(config.isDebug());
 
             broadcaster.start();
 
-            logger.info(
-                    "LAN Broadcast iniciado na porta {}.",
-                    advertisedPort
-            );
+            logger.info(language.cleanColors(language.get("broadcast.started_port", advertisedPort)));
 
             return true;
 
         } catch (Exception e) {
-
-            logger.error(
-                    "Não foi possível iniciar o LAN Broadcast.",
-                    e
-            );
+            logger.error(language.cleanColors(language.get("broadcast.start_failed")), e);
 
             if (broadcaster != null) {
                 broadcaster.shutdown();
@@ -178,7 +152,6 @@ public class BetterLANBroadcaster {
     }
 
     public synchronized boolean stopBroadcaster() {
-
         if (broadcaster == null) {
             return false;
         }
@@ -189,35 +162,30 @@ public class BetterLANBroadcaster {
 
         broadcaster.stop();
 
-        logger.info(
-                "LAN Broadcast parado."
-        );
+        logger.info(language.cleanColors(language.get("broadcast.stopped")));
 
         return true;
     }
 
     public synchronized void shutdownBroadcaster() {
-
-            if (broadcaster == null) {
-                return;
-            }
-
-            try {
-                broadcaster.shutdown();
-            } catch (Exception e) {
-                logger.warn(
-                        "Erro ao encerrar o LAN Broadcast.",
-                        e
-                );
-            } finally {
-                broadcaster = null;
-            }
+        if (broadcaster == null) {
+            return;
         }
-        public synchronized boolean reloadBroadcaster() {
+
+        try {
+            broadcaster.shutdown();
+        } catch (Exception e) {
+            logger.warn(language.cleanColors(language.get("broadcast.shutdown_error")), e);
+        } finally {
+            broadcaster = null;
+        }
+    }
+
+    public synchronized boolean reloadBroadcaster() {
         shutdownBroadcaster();
 
         if (!config.isBroadcastEnabled()) {
-            logger.info("LAN Broadcast está desativado após o reload.");
+            logger.info(language.cleanColors(language.get("broadcast.disabled_reload")));
             return true;
         }
 
@@ -237,7 +205,6 @@ public class BetterLANBroadcaster {
     }
 
     public int getMaxPlayers() {
-
         try {
             int maxPlayers = server
                     .getConfiguration()
@@ -246,14 +213,8 @@ public class BetterLANBroadcaster {
             if (maxPlayers > 0) {
                 return maxPlayers;
             }
-
         } catch (Exception e) {
-
-            logger.debug(
-                    "Não foi possível obter o limite de jogadores "
-                            + "da configuração do Velocity.",
-                    e
-            );
+            logger.debug(language.cleanColors(language.get("players.max_fetch_error")), e);
         }
 
         return 100;
@@ -288,13 +249,11 @@ public class BetterLANBroadcaster {
     }
 
     public String formatMiniMessage(String text) {
-
         if (text == null || text.isEmpty()) {
             return "";
         }
 
         try {
-
             String legacy =
                     net.kyori.adventure.text.serializer.legacy
                             .LegacyComponentSerializer
@@ -309,19 +268,13 @@ public class BetterLANBroadcaster {
             return translateColorCodes(legacy);
 
         } catch (Exception e) {
-
-            logger.debug(
-                    "Não foi possível interpretar MiniMessage: {}",
-                    text,
-                    e
-            );
+            logger.debug(language.get("minimessage.parse_error", text), e);
 
             return translateColorCodes(text);
         }
     }
 
     private String translateColorCodes(String text) {
-
         if (text == null || text.isEmpty()) {
             return "";
         }
