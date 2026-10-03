@@ -4,12 +4,12 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Stream;
 
-public class CommandHandler implements SimpleCommand {
+public final class CommandHandler implements SimpleCommand {
 
     private static final List<String> SUBCOMMANDS = List.of(
             "start", "stop", "status", "setmotd", "setdelay",
@@ -43,61 +43,70 @@ public class CommandHandler implements SimpleCommand {
         }
 
         String subcommand = args[0].toLowerCase(Locale.ROOT);
-
         switch (subcommand) {
-            case "start" -> handleStart(source);
-            case "stop" -> handleStop(source);
-            case "status" -> handleStatus(source);
+            case "start" -> handleStart(source, args);
+            case "stop" -> handleStop(source, args);
+            case "status" -> handleStatus(source, args);
             case "setmotd" -> handleSetMotd(source, args);
             case "setdelay" -> handleSetDelay(source, args);
             case "setport" -> handleSetPort(source, args);
             case "setinterface" -> handleSetInterface(source, args);
             case "debug" -> handleDebug(source, args);
-            case "reload" -> handleReload(source);
+            case "reload" -> handleReload(source, args);
             case "help" -> handleHelp(source);
             case "version" -> handleVersion(source);
             default -> sendSyntax(source, "/blb help");
         }
     }
 
-    private void sendSyntax(CommandSource source, String usage) {
-        send(source, "error.invalid-syntax", usage);
-    }
-
-    private void handleStart(CommandSource source) {
-        if (plugin.getBroadcaster() != null && plugin.getBroadcaster().isRunning()) {
-            send(source, "broadcast.already-running");
+    private void handleStart(CommandSource source, String[] args) {
+        if (args.length != 1) {
+            sendSyntax(source, "/blb start");
             return;
         }
 
-        boolean started = plugin.startBroadcaster();
+        synchronized (plugin) {
+            if (isBroadcastRunning()) {
+                send(source, "broadcast.already-running");
+                return;
+            }
 
-        if (started) {
-            send(source, "broadcast.started");
-        } else {
-            send(source, "error.start-failed");
+            if (plugin.startBroadcaster()) {
+                send(source, "broadcast.started");
+            } else {
+                send(source, "error.start-failed");
+            }
         }
     }
 
-    private void handleStop(CommandSource source) {
-        if (plugin.getBroadcaster() == null || !plugin.getBroadcaster().isRunning()) {
-            send(source, "broadcast.already-stopped");
+    private void handleStop(CommandSource source, String[] args) {
+        if (args.length != 1) {
+            sendSyntax(source, "/blb stop");
             return;
         }
 
-        boolean stopped = plugin.stopBroadcaster();
+        synchronized (plugin) {
+            if (!isBroadcastRunning()) {
+                send(source, "broadcast.already-stopped");
+                return;
+            }
 
-        if (stopped) {
-            send(source, "broadcast.stopped");
-        } else {
-            send(source, "error.stop-failed");
+            if (plugin.stopBroadcaster()) {
+                send(source, "broadcast.stopped");
+            } else {
+                send(source, "error.stop-failed");
+            }
         }
     }
 
-    private void handleStatus(CommandSource source) {
+    private void handleStatus(CommandSource source, String[] args) {
+        if (args.length != 1) {
+            sendSyntax(source, "/blb status");
+            return;
+        }
+
         MulticastBroadcaster broadcaster = plugin.getBroadcaster();
-
-        String status = (broadcaster != null && broadcaster.isRunning())
+        String status = broadcaster != null && broadcaster.isRunning()
                 ? plugin.getLanguage().get("broadcast.status.running")
                 : plugin.getLanguage().get("broadcast.status.stopped");
 
@@ -109,9 +118,18 @@ public class CommandHandler implements SimpleCommand {
         if (port == 0 && broadcaster != null && broadcaster.getPort() > 0) {
             port = broadcaster.getPort();
         }
-
         send(source, "broadcast.status.port", port);
         send(source, "broadcast.status.interface", plugin.getConfig().getNetworkInterface());
+        send(source, "broadcast.status.multicast", MulticastBroadcaster.MULTICAST_ADDRESS, MulticastBroadcaster.MULTICAST_PORT, MulticastBroadcaster.MULTICAST_TTL);
+        send(source, "broadcast.status.interfaces", broadcaster == null ? 0 : broadcaster.getActiveInterfaceCount());
+
+        if (broadcaster != null) {
+            for (MulticastBroadcaster.InterfaceInfo info : broadcaster.getActiveInterfaces()) {
+                send(source, "broadcast.status.interface-detail", info.displayName(), info.name(), info.ipv4());
+            }
+            send(source, "broadcast.status.stats", broadcaster.getBroadcastsSent(), broadcaster.getBroadcastFailures());
+            send(source, "broadcast.status.last-broadcast", formatLastBroadcast(broadcaster.getLastBroadcastEpochMillis()));
+        }
 
         send(
                 source,
@@ -128,20 +146,25 @@ public class CommandHandler implements SimpleCommand {
             return;
         }
 
-        String motd = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-
+        String motd = String.join(" ", Arrays.copyOfRange(args, 1, args.length)).trim();
         if (motd.isBlank()) {
             send(source, "error.invalid-motd");
             return;
         }
 
-        if (!plugin.getConfig().set("motd", motd) || !plugin.getConfig().save()) {
-            send(source, "error.config-save");
-            return;
-        }
+        synchronized (plugin) {
+            String previous = plugin.getConfig().getMotd();
+            if (!plugin.getConfig().setMotd(motd)) {
+                send(source, "error.config-save");
+                return;
+            }
 
-        if (isBroadcastRunning()) {
-            plugin.reconfigureBroadcaster();
+            if (isBroadcastRunning() && !plugin.reconfigureBroadcaster()) {
+                plugin.getConfig().setMotd(previous);
+                plugin.reconfigureBroadcaster();
+                send(source, "error.reload-broadcast");
+                return;
+            }
         }
 
         send(source, "broadcast.motd-set", motd);
@@ -156,23 +179,29 @@ public class CommandHandler implements SimpleCommand {
         long delay;
         try {
             delay = Long.parseLong(args[1]);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException exception) {
             send(source, "error.invalid-delay");
             return;
         }
 
-        if (delay < 50 || delay > 86_400_000L) {
+        if (delay < 50L || delay > 86_400_000L) {
             send(source, "error.invalid-delay");
             return;
         }
 
-        if (!plugin.getConfig().set("broadcast-delay-ms", delay) || !plugin.getConfig().save()) {
-            send(source, "error.config-save");
-            return;
-        }
+        synchronized (plugin) {
+            long previous = plugin.getConfig().getBroadcastDelayMs();
+            if (!plugin.getConfig().setBroadcastDelayMs(delay)) {
+                send(source, "error.config-save");
+                return;
+            }
 
-        if (isBroadcastRunning()) {
-            plugin.reconfigureBroadcaster();
+            if (isBroadcastRunning() && !plugin.reconfigureBroadcaster()) {
+                plugin.getConfig().setBroadcastDelayMs(previous);
+                plugin.reconfigureBroadcaster();
+                send(source, "error.reload-broadcast");
+                return;
+            }
         }
 
         send(source, "broadcast.delay-set", delay);
@@ -186,35 +215,38 @@ public class CommandHandler implements SimpleCommand {
 
         String value = args[1].trim();
         int port;
-
         if (value.equalsIgnoreCase("auto")) {
             port = 0;
         } else {
             try {
                 port = Integer.parseInt(value);
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException exception) {
                 send(source, "error.invalid-port");
                 return;
             }
-
             if (port < 1 || port > 65535) {
                 send(source, "error.invalid-port");
                 return;
             }
         }
 
-        if (!plugin.getConfig().set("broadcast-port", port) || !plugin.getConfig().save()) {
-            send(source, "error.config-save");
-            return;
-        }
+        synchronized (plugin) {
+            int previous = plugin.getConfig().getBroadcastPort();
+            if (!plugin.getConfig().setBroadcastPort(port)) {
+                send(source, "error.config-save");
+                return;
+            }
 
-        if (isBroadcastRunning()) {
-            plugin.reconfigureBroadcaster();
+            if (isBroadcastRunning() && !plugin.reconfigureBroadcaster()) {
+                plugin.getConfig().setBroadcastPort(previous);
+                plugin.reconfigureBroadcaster();
+                send(source, "error.reload-broadcast");
+                return;
+            }
         }
 
         if (port == 0) {
-            int detected = plugin.getServer().getBoundAddress().getPort();
-            send(source, "broadcast.port-set-auto", detected);
+            send(source, "broadcast.port-set-auto", plugin.getServer().getBoundAddress().getPort());
         } else {
             send(source, "broadcast.port-set", port);
         }
@@ -227,20 +259,21 @@ public class CommandHandler implements SimpleCommand {
         }
 
         String networkInterface = args[1].trim();
-
         if (networkInterface.isBlank()) {
             send(source, "error.invalid-interface");
             return;
         }
 
-        if (!plugin.getConfig().set("network-interface", networkInterface) || !plugin.getConfig().save()) {
-            send(source, "error.config-save");
-            return;
-        }
+        synchronized (plugin) {
+            String previous = plugin.getConfig().getNetworkInterface();
+            if (!plugin.getConfig().setNetworkInterface(networkInterface)) {
+                send(source, "error.config-save");
+                return;
+            }
 
-        if (isBroadcastRunning()) {
-            boolean success = plugin.reconfigureBroadcaster();
-            if (!success) {
+            if (isBroadcastRunning() && !plugin.reconfigureBroadcaster()) {
+                plugin.getConfig().setNetworkInterface(previous);
+                plugin.reconfigureBroadcaster();
                 send(source, "error.interface-start");
                 return;
             }
@@ -251,11 +284,10 @@ public class CommandHandler implements SimpleCommand {
 
     private void handleDebug(CommandSource source, String[] args) {
         if (args.length == 1) {
-            boolean enabled = plugin.getConfig().isDebug();
             send(
                     source,
                     "debug.label",
-                    enabled
+                    plugin.getConfig().isDebug()
                             ? plugin.getLanguage().get("debug.status-on")
                             : plugin.getLanguage().get("debug.status-off")
             );
@@ -269,7 +301,6 @@ public class CommandHandler implements SimpleCommand {
 
         String value = args[1].toLowerCase(Locale.ROOT);
         boolean enabled;
-
         if (value.equals("on") || value.equals("true") || value.equals("enable") || value.equals("enabled")) {
             enabled = true;
         } else if (value.equals("off") || value.equals("false") || value.equals("disable") || value.equals("disabled")) {
@@ -279,31 +310,30 @@ public class CommandHandler implements SimpleCommand {
             return;
         }
 
-        if (!plugin.getConfig().set("debug", enabled) || !plugin.getConfig().save()) {
-            send(source, "error.config-save");
-            return;
-        }
-
-        if (plugin.getBroadcaster() != null) {
-            plugin.getBroadcaster().setDebug(enabled);
+        synchronized (plugin) {
+            if (!plugin.getConfig().setDebug(enabled)) {
+                send(source, "error.config-save");
+                return;
+            }
+            if (plugin.getBroadcaster() != null) {
+                plugin.getBroadcaster().setDebug(enabled);
+            }
         }
 
         send(source, enabled ? "debug.on" : "debug.off");
     }
 
-    private void handleReload(CommandSource source) {
-        if (!plugin.getConfig().reload()) {
-            send(source, "error.config-reload");
+    private void handleReload(CommandSource source, String[] args) {
+        if (args.length != 1) {
+            sendSyntax(source, "/blb reload");
             return;
         }
 
-        plugin.getLanguage().load(plugin.getConfig().getLanguage());
-
-        boolean success = plugin.reconfigureBroadcaster();
-
-        if (!success) {
-            send(source, "error.reload-broadcast");
-            return;
+        synchronized (plugin) {
+            if (!plugin.reloadBroadcaster()) {
+                send(source, "error.config-reload");
+                return;
+            }
         }
 
         send(source, "config.reloaded");
@@ -337,7 +367,6 @@ public class CommandHandler implements SimpleCommand {
         }
 
         String[] args = invocation.arguments();
-
         if (args.length == 0) {
             return SUBCOMMANDS;
         }
@@ -354,12 +383,8 @@ public class CommandHandler implements SimpleCommand {
             String input = args[1].toLowerCase(Locale.ROOT);
 
             return switch (subcommand) {
-                case "setport", "setinterface" -> Stream.of("auto")
-                        .filter(option -> option.startsWith(input))
-                        .toList();
-                case "debug" -> Stream.of("on", "off")
-                        .filter(option -> option.startsWith(input))
-                        .toList();
+                case "setport", "setinterface" -> filterOptions(List.of("auto"), input);
+                case "debug" -> filterOptions(List.of("on", "off"), input);
                 default -> List.of();
             };
         }
@@ -367,20 +392,40 @@ public class CommandHandler implements SimpleCommand {
         return List.of();
     }
 
+    private List<String> filterOptions(List<String> options, String input) {
+        List<String> result = new ArrayList<>();
+        for (String option : options) {
+            if (option.startsWith(input)) {
+                result.add(option);
+            }
+        }
+        return result;
+    }
+
     private boolean isBroadcastRunning() {
-        return plugin.getBroadcaster() != null && plugin.getBroadcaster().isRunning();
+        MulticastBroadcaster broadcaster = plugin.getBroadcaster();
+        return broadcaster != null && broadcaster.isRunning();
+    }
+
+    private String formatLastBroadcast(long epochMillis) {
+        if (epochMillis <= 0) {
+            return plugin.getLanguage().get("broadcast.status.never");
+        }
+        return java.time.Instant.ofEpochMilli(epochMillis).toString();
+    }
+
+    private void sendSyntax(CommandSource source, String usage) {
+        send(source, "error.invalid-syntax", usage);
     }
 
     private void send(CommandSource source, String path, Object... arguments) {
-        String message = plugin.getLanguage().message(path, arguments);
-        sendRaw(source, message);
+        sendRaw(source, plugin.getLanguage().message(path, arguments));
     }
 
     private void sendRaw(CommandSource source, String message) {
         if (message == null || message.isBlank()) {
             return;
         }
-
         source.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(message));
     }
 }

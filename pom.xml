@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -9,7 +8,7 @@
 
     <groupId>com.myxxr</groupId>
     <artifactId>BetterLANBroadcaster</artifactId>
-    <version>1.0.3</version>
+    <version>1.1</version>
 
     <name>BetterLANBroadcaster-Velocity</name>
     <description>BetterLANBroadcaster ported to Velocity</description>
@@ -17,9 +16,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
+
         <velocity.version>3.4.0</velocity.version>
         <adventure.version>4.26.1</adventure.version>
         <configurate.version>4.2.0</configurate.version>
+        <bstats.version>3.2.1</bstats.version>
     </properties>
 
     <repositories>
@@ -53,6 +54,14 @@
             <version>${configurate.version}</version>
         </dependency>
 
+        <!-- bStats -->
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-velocity</artifactId>
+            <version>${bstats.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -75,6 +84,34 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+
+            <!-- Build final JAR with dependencies -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.1</version>
+
+                <configuration>
+                    <relocations>
+                        <relocation>
+                            <pattern>org.bstats</pattern>
+                            <shadedPattern>com.betterlanbroadcaster.libs.bstats</shadedPattern>
+                        </relocation>
+                    </relocations>
+
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>

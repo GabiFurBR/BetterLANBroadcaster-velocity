@@ -1,106 +1,76 @@
 # ============================================================
-# BetterLANBroadcaster - 简体中文
+# BetterLANBroadcaster - ZH
 # ============================================================
 
-prefix: "&7[&6BetterLANBroadcaster&7] "
-
-# ============================================================
-# Plugin Lifecycle
-# ============================================================
-
+prefix: '&7[&6BetterLANBroadcaster&7] '
 plugin:
-  initializing: "&e正在初始化 BetterLANBroadcaster v{0}..."
-  started: "&a插件已成功启动！"
-  shutdown: "&c插件已禁用。"
-
-# ============================================================
-# 广播设置
-# ============================================================
-
+  initializing: '&e正在初始化 BetterLANBroadcaster v{0}...'
+  started: '&a插件已成功启动！'
+  stopping: '&c正在关闭插件...'
+  shutdown: '&c插件已禁用。'
 broadcast:
-  started: "&a局域网组播广播已启动。"
-  stopped: "&c局域网组播广播已停止。"
-  already-running: "&e局域网组播广播已经在运行中。"
-  already-stopped: "&e局域网组播广播已经处于停止状态。"
-  disabled: "&e配置文件中已禁用自动局域网广播。"
-
+  started: '&a局域网组播广播已启动。'
+  stopped: '&c局域网组播广播已停止。'
+  already-running: '&e局域网组播广播已经在运行中。'
+  already-stopped: '&e局域网组播广播已经处于停止状态。'
+  disabled: '&e配置文件中已禁用自动局域网广播。'
   status:
-    running: "&a&l● &a运行中"
-    stopped: "&c&l○ &c已停止"
-    motd: "&7MOTD：&f{0}"
-    delay: "&7间隔：&f{0} 毫秒"
-    port: "&7端口：&f{0}"
-    interface: "&7网络接口：&f{0}"
-
-  motd-set: "&aMOTD 已更新为：&f{0}"
-  delay-set: "&a广播间隔已设置为 &f{0} 毫秒&a。"
-  port-set: "&a广播端口已设置为 &f{0}&a。"
-  port-set-auto: "&a广播端口已设置为自动检测：&f{0}&a。"
-  interface-set: "&a网络接口已设置为：&f{0}"
-
-# ============================================================
-# 配置文件
-# ============================================================
-
+    running: '&a&l● &a运行中'
+    stopped: '&c&l○ &c已停止'
+    motd: '&7MOTD：&f{0}'
+    delay: '&7间隔：&f{0} 毫秒'
+    port: '&7端口：&f{0}'
+    interface: '&7网络接口：&f{0}'
+    multicast: '&7组播：&f{0}:{1} &7TTL：&f{2}'
+    interfaces: '&7活动网络接口：&f{0}'
+    interface-detail: '&8  - &f{0} &7[{1}] IPv4=&f{2}'
+    stats: '&7已发送数据包：&f{0} &7| 失败：&f{1}'
+    last-broadcast: '&7最近成功广播：&f{0}'
+    never: 从未
+  motd-set: '&aMOTD 已更新为：&f{0}'
+  delay-set: '&a广播间隔已设置为 &f{0} 毫秒&a。'
+  port-set: '&a广播端口已设置为 &f{0}&a。'
+  port-set-auto: '&a广播端口已设置为自动检测：&f{0}&a。'
+  interface-set: '&a网络接口已设置为：&f{0}'
 config:
-  reloaded: "&a配置文件已成功重新加载。"
-
-# ============================================================
-# 调试模式
-# ============================================================
-
+  reloaded: '&a配置文件已成功重新加载。'
 debug:
-  "on": "&a调试模式已启用。广播数据包将记录到控制台。"
-  "off": "&c调试模式已禁用。"
-  status-on: "&a&l已启用"
-  status-off: "&7已禁用"
-  label: "&7调试状态：&f{0}"
-
-# ============================================================
-# 帮助信息
-# ============================================================
-
+  'on': '&a调试模式已启用。组播诊断信息将记录到控制台。'
+  'off': '&c调试模式已禁用。'
+  status-on: '&a&l已启用'
+  status-off: '&7已禁用'
+  label: '&7调试状态：&f{0}'
 help:
-  title: "&6===== BetterLANBroadcaster 帮助 ====="
-  start: "&e/blb start &7- 启动局域网广播"
-  stop: "&e/blb stop &7- 停止局域网广播"
-  status: "&e/blb status &7- 查看广播状态"
-  setmotd: "&e/blb setmotd <MOTD> &7- 设置广播 MOTD"
-  setdelay: "&e/blb setdelay <毫秒> &7- 设置广播间隔（毫秒）"
-  setport: "&e/blb setport <端口|auto> &7- 设置广播端口"
-  setinterface: "&e/blb setinterface <auto|名称|IPv4> &7- 设置网络接口"
-  debug: "&e/blb debug <on|off> &7- 切换调试模式"
-  reload: "&e/blb reload &7- 重新加载配置文件"
-  help: "&e/blb help &7- 显示此帮助信息"
-  version: "&e/blb version &7- 显示插件版本"
-  footer: "&6==================================="
-
-# ============================================================
-# 版本信息
-# ============================================================
-
+  title: '&6===== BetterLANBroadcaster 帮助 ====='
+  start: '&e/blb start &7- 启动局域网广播'
+  stop: '&e/blb stop &7- 停止局域网广播'
+  status: '&e/blb status &7- 查看广播状态'
+  setmotd: '&e/blb setmotd <MOTD> &7- 设置广播 MOTD'
+  setdelay: '&e/blb setdelay <毫秒> &7- 设置广播间隔（毫秒）'
+  setport: '&e/blb setport <端口|auto> &7- 设置广播端口'
+  setinterface: '&e/blb setinterface <auto|名称|IPv4> &7- 设置网络接口'
+  debug: '&e/blb debug <on|off> &7- 切换调试模式'
+  reload: '&e/blb reload &7- 重新加载配置文件'
+  help: '&e/blb help &7- 显示此帮助信息'
+  version: '&e/blb version &7- 显示插件版本'
+  footer: '&6==================================='
 version:
-  line1: "&6BetterLANBroadcaster &ev{0}"
-  line2: "&7作者：&f{0}"
-  help-hint: "&7输入 &f{0} &7获取帮助"
-
-# ============================================================
-# 错误信息
-# ============================================================
-
+  line1: '&6BetterLANBroadcaster &ev{0}'
+  line2: '&7作者：&f{0}'
+  help-hint: '&7输入 &f{0} &7获取帮助'
 error:
-  no-permission: "&c您没有权限执行此命令。"
-  invalid-delay: "&c无效的广播间隔。请输入大于 0 的毫秒数。"
-  invalid-port: "&c无效的端口。请输入 1 到 65535 之间的数字，或使用 'auto'。"
-  invalid-interface: "&c无效的网络接口。请输入 'auto'、接口名称或有效的 IPv4 地址。"
-  invalid-syntax: "&c语法错误。正确用法：&f{0}"
-  start-failed: "&c无法启动局域网广播。"
-  reload-failed: "&c无法重新加载 BetterLANBroadcaster。"
-  configuration-error: "&c配置文件发生错误，请检查控制台以获取详细信息。"
-  stop-failed: "&c无法停止局域网广播。"
-  invalid-motd: "&c无效的 MOTD，请输入非空的文本。"
-  config-save: "&c无法保存配置文件。"
-  interface-start: "&c无法使用指定的网络接口重新启动局域网广播。"
-  invalid-debug: "&c无效的调试选项。请使用 &fon&c 或 &foff&c。"
-  config-reload: "&c无法重新加载配置文件。"
-  reload-broadcast: "&c重新加载配置后，无法重新启动局域网广播。"
+  no-permission: '&c您没有权限执行此命令。'
+  invalid-delay: '&c无效的广播间隔。请输入大于 0 的毫秒数。'
+  invalid-port: '&c无效的端口。请输入 1 到 65535 之间的数字，或使用 ''auto''。'
+  invalid-interface: '&c无效的网络接口。请输入 ''auto''、接口名称或有效的 IPv4 地址。'
+  invalid-syntax: '&c语法错误。正确用法：&f{0}'
+  start-failed: '&c无法启动局域网广播。'
+  reload-failed: '&c无法重新加载 BetterLANBroadcaster。'
+  configuration-error: '&c配置文件发生错误，请检查控制台以获取详细信息。'
+  stop-failed: '&c无法停止局域网广播。'
+  invalid-motd: '&c无效的 MOTD，请输入非空的文本。'
+  config-save: '&c无法保存配置文件。'
+  interface-start: '&c无法使用指定的网络接口重新启动局域网广播。'
+  invalid-debug: '&c无效的调试选项。请使用 &fon&c 或 &foff&c。'
+  config-reload: '&c无法重新加载配置文件。'
+  reload-broadcast: '&c重新加载配置后，无法重新启动局域网广播。'

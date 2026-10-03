@@ -12,171 +12,365 @@ import java.nio.channels.DatagramChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-public class MulticastBroadcaster {
+public final class MulticastBroadcaster {
 
-    private static final String MULTICAST_ADDRESS = "224.0.2.60";
-    private static final int MULTICAST_PORT = 4445;
-    private static final int MULTICAST_TTL = 1;
+    public static final String MULTICAST_ADDRESS = "224.0.2.60";
+    public static final int MULTICAST_PORT = 4445;
+    public static final int MULTICAST_TTL = 1;
+
+    /* Transport safeguard; this is not a Minecraft protocol-mandated maximum. */
     private static final int MAX_PACKET_SIZE = 1400;
+    private static final long MIN_DELAY_MS = 50L;
+    private static final long MAX_DELAY_MS = 86_400_000L;
+    private static final long DEBUG_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(5);
+    private static final long FAILURE_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
+    private static final long INTERFACE_REFRESH_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(5);
 
     private final BetterLANBroadcaster plugin;
-    private final String configuredMotd;
-    private final int advertisedPort;
-    private final long delayMs;
-    private final String configuredInterface;
-
     private final ScheduledExecutorService scheduler;
-    private final List<InterfaceSocket> sockets = new ArrayList<>();
+    private final InetAddress multicastAddress;
+    private final InetSocketAddress multicastDestination;
 
+    private List<InterfaceSocket> sockets = List.of();
     private ScheduledFuture<?> broadcastTask;
+
+    private String configuredMotd = "A Minecraft Server";
+    private int advertisedPort;
+    private long delayMs = 1500L;
+    private String configuredInterface = "auto";
+    private List<String> excludedInterfaces = List.of();
 
     private volatile boolean running;
     private volatile boolean shutdown;
     private volatile boolean debug;
 
-    public MulticastBroadcaster(BetterLANBroadcaster plugin, String motd, int port, long delayMs, String networkInterface) {
-        this.plugin = plugin;
-        this.configuredMotd = motd;
-        this.advertisedPort = port;
-        this.delayMs = delayMs;
-        this.configuredInterface = networkInterface == null ? "auto" : networkInterface;
+    private volatile long cycles;
+    private volatile long broadcastsSent;
+    private volatile long broadcastFailures;
+    private volatile long lastBroadcastEpochMillis;
 
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(task -> {
+    private int cachedOnline = Integer.MIN_VALUE;
+    private int cachedMax = Integer.MIN_VALUE;
+    private int cachedPort = Integer.MIN_VALUE;
+    private String cachedMotd;
+    private byte[] cachedPayload;
+
+    private long nextDebugLogNanos;
+    private long nextFailureLogNanos;
+    private long nextInterfaceRefreshNanos;
+
+    public MulticastBroadcaster(BetterLANBroadcaster plugin) {
+        this.plugin = plugin;
+        try {
+            this.multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS);
+        } catch (IOException exception) {
+            throw new IllegalStateException(
+                    "Unable to resolve the fixed Minecraft LAN multicast address.", exception
+            );
+        }
+        this.multicastDestination = new InetSocketAddress(multicastAddress, MULTICAST_PORT);
+        ThreadFactory threadFactory = task -> {
             Thread thread = new Thread(task, "BetterLANBroadcaster");
             thread.setDaemon(true);
             return thread;
-        });
+        };
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, threadFactory);
+        executor.setRemoveOnCancelPolicy(true);
+        this.scheduler = executor;
     }
 
-    public synchronized void start() throws IOException {
-        if (shutdown) throw new IOException("Multicast broadcaster is already shut down.");
-        if (running) return;
+    public synchronized void start(
+            String motd,
+            int port,
+            long delayMs,
+            String networkInterface,
+            List<String> networkInterfaceExcludes,
+            boolean debug
+    ) throws IOException {
+        ensureNotShutdown();
+        if (running) {
+            return;
+        }
+        validateAdvertisedPort(port);
 
-        closeSockets();
-
-        InetAddress multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS);
-        if (!multicastAddress.isMulticastAddress()) {
-            throw new IOException("Invalid multicast address: " + MULTICAST_ADDRESS);
+        List<InterfaceSocket> created = createSockets(networkInterface, networkInterfaceExcludes);
+        if (created.isEmpty()) {
+            throw new IOException("No usable IPv4 multicast interfaces were found.");
         }
 
-        List<NetworkInterface> interfaces = resolveInterfaces();
-        if (interfaces.isEmpty()) {
-            throw new IOException("No multicast-compatible network interfaces were found.");
+        applyConfiguration(motd, port, delayMs, networkInterface, networkInterfaceExcludes, debug);
+        sockets = List.copyOf(created);
+        running = true;
+        scheduleBroadcastTask();
+    }
+
+    public synchronized void reconfigure(
+            String motd,
+            int port,
+            long delayMs,
+            String networkInterface,
+            List<String> networkInterfaceExcludes,
+            boolean debug
+    ) throws IOException {
+        ensureNotShutdown();
+
+        if (!running) {
+            validateAdvertisedPort(port);
+            applyConfiguration(motd, port, delayMs, networkInterface, networkInterfaceExcludes, debug);
+            return;
         }
 
-        int successful = 0;
-        for (NetworkInterface networkInterface : interfaces) {
-            try {
-                InterfaceSocket interfaceSocket = createSocket(networkInterface, multicastAddress);
-                sockets.add(interfaceSocket);
-                successful++;
+        validateAdvertisedPort(port);
 
-                logDebug("Active multicast interface: " + networkInterface.getDisplayName() 
-                        + " [" + networkInterface.getName() + "] IPv4=" + interfaceSocket.ipv4.getHostAddress());
-            } catch (Exception exception) {
-                logDebug("Could not use interface " + networkInterface.getDisplayName() 
-                        + " [" + networkInterface.getName() + "]: " + exception.getMessage());
+        String normalizedInterface = normalizeInterface(networkInterface);
+        List<String> normalizedExcludes = normalizeExcludes(networkInterfaceExcludes);
+        boolean networkConfigurationChanged = !configuredInterface.equalsIgnoreCase(normalizedInterface)
+                || !sameIgnoreCase(excludedInterfaces, normalizedExcludes);
+        long normalizedDelay = normalizeDelay(delayMs);
+        boolean delayChanged = this.delayMs != normalizedDelay;
+
+        List<InterfaceSocket> replacement = null;
+        if (networkConfigurationChanged) {
+            replacement = createSockets(normalizedInterface, normalizedExcludes);
+            if (replacement.isEmpty()) {
+                throw new IOException("The new network configuration has no usable multicast interfaces.");
             }
         }
 
-        if (successful == 0) {
-            closeSockets();
-            throw new IOException("None of the discovered network interfaces could be configured for multicast.");
+        List<InterfaceSocket> previousSockets = sockets;
+        applyConfiguration(motd, port, normalizedDelay, normalizedInterface, normalizedExcludes, debug);
+
+        if (replacement != null) {
+            sockets = List.copyOf(replacement);
+            closeSockets(previousSockets);
         }
 
-        running = true;
-        long interval = Math.max(50L, delayMs);
-
-        broadcastTask = scheduler.scheduleAtFixedRate(
-                this::broadcastSafely,
-                0L,
-                interval,
-                TimeUnit.MILLISECONDS
-        );
-
-        plugin.getLogger().info("Multicast broadcaster started: " + MULTICAST_ADDRESS + ":" + MULTICAST_PORT + " using " + successful + " interface(s).");
+        if (delayChanged) {
+            scheduleBroadcastTask();
+        }
     }
 
     public synchronized void stop() {
         if (!running) {
-            closeSockets();
             return;
         }
 
         running = false;
+        cancelBroadcastTask();
+
+        List<InterfaceSocket> previousSockets = sockets;
+        sockets = List.of();
+        closeSockets(previousSockets);
+    }
+
+    public synchronized void shutdown() {
+        if (shutdown) {
+            return;
+        }
+
+        shutdown = true;
+        running = false;
+        cancelBroadcastTask();
+
+        List<InterfaceSocket> previousSockets = sockets;
+        sockets = List.of();
+        closeSockets(previousSockets);
+        scheduler.shutdownNow();
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    public synchronized int getPort() {
+        return advertisedPort;
+    }
+
+    public synchronized long getDelayMs() {
+        return delayMs;
+    }
+
+    public synchronized String getConfiguredInterface() {
+        return configuredInterface;
+    }
+
+    public synchronized int getActiveInterfaceCount() {
+        return sockets.size();
+    }
+
+    public synchronized List<InterfaceInfo> getActiveInterfaces() {
+        List<InterfaceInfo> result = new ArrayList<>(sockets.size());
+        for (InterfaceSocket socket : sockets) {
+            result.add(new InterfaceInfo(
+                    socket.networkInterface.getName(),
+                    socket.networkInterface.getDisplayName(),
+                    socket.ipv4.getHostAddress(),
+                    socket.networkInterface.isVirtual(),
+                    socket.pointToPoint
+            ));
+        }
+        return List.copyOf(result);
+    }
+
+    public long getCycles() {
+        return cycles;
+    }
+
+    public long getBroadcastsSent() {
+        return broadcastsSent;
+    }
+
+    public long getBroadcastFailures() {
+        return broadcastFailures;
+    }
+
+    public long getLastBroadcastEpochMillis() {
+        return lastBroadcastEpochMillis;
+    }
+
+    public synchronized void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    private void ensureNotShutdown() throws IOException {
+        if (shutdown) {
+            throw new IOException("Multicast broadcaster is already shut down.");
+        }
+    }
+
+    private void validateAdvertisedPort(int port) throws IOException {
+        if (port < 1 || port > 65535) {
+            throw new IOException("The advertised port must be between 1 and 65535.");
+        }
+    }
+
+    private void applyConfiguration(
+            String motd,
+            int port,
+            long delayMs,
+            String networkInterface,
+            List<String> networkInterfaceExcludes,
+            boolean debug
+    ) {
+        this.configuredMotd = motd == null ? "" : motd;
+        this.advertisedPort = port;
+        this.delayMs = normalizeDelay(delayMs);
+        this.configuredInterface = normalizeInterface(networkInterface);
+        this.excludedInterfaces = normalizeExcludes(networkInterfaceExcludes);
+        this.debug = debug;
+        invalidatePayloadCache();
+    }
+
+    private long normalizeDelay(long value) {
+        return Math.max(MIN_DELAY_MS, Math.min(MAX_DELAY_MS, value));
+    }
+
+    private void scheduleBroadcastTask() {
+        cancelBroadcastTask();
+        broadcastTask = scheduler.scheduleAtFixedRate(
+                this::broadcastSafely,
+                0L,
+                delayMs,
+                TimeUnit.MILLISECONDS
+        );
+    }
+
+    private void cancelBroadcastTask() {
         if (broadcastTask != null) {
             broadcastTask.cancel(false);
             broadcastTask = null;
         }
-
-        closeSockets();
     }
 
-    public synchronized void shutdown() {
-        if (shutdown) return;
-        shutdown = true;
-        stop();
-        scheduler.shutdownNow();
-    }
-
-    public boolean isRunning() { return running; }
-    public int getPort() { return advertisedPort; }
-    public void setDebug(boolean debug) { this.debug = debug; }
-
-    private List<NetworkInterface> resolveInterfaces() throws IOException {
-        String configured = configuredInterface == null ? "auto" : configuredInterface.trim();
-
-        if (configured.isEmpty() || configured.equalsIgnoreCase("auto")) {
-            return findAllSuitableInterfaces();
+    private List<InterfaceSocket> createSockets(String networkInterface, List<String> excludes) throws IOException {
+        List<NetworkInterface> interfaces = resolveInterfaces(networkInterface, excludes);
+        if (interfaces.isEmpty()) {
+            throw new IOException("No multicast-compatible IPv4 interfaces were found.");
         }
 
-        NetworkInterface selected = findConfiguredInterface(configured);
+        List<InterfaceSocket> created = new ArrayList<>(interfaces.size());
+        for (NetworkInterface networkInterfaceEntry : interfaces) {
+            try {
+                InterfaceSocket socket = createSocket(networkInterfaceEntry);
+                created.add(socket);
+                logDebug(
+                        "Active multicast interface: {} [{}] IPv4={} virtual={} pointToPoint={}",
+                        networkInterfaceEntry.getDisplayName(),
+                        networkInterfaceEntry.getName(),
+                        socket.ipv4.getHostAddress(),
+                        networkInterfaceEntry.isVirtual(),
+                        socket.pointToPoint
+                );
+            } catch (IOException exception) {
+                logInterfaceFailure(networkInterfaceEntry, exception);
+            } catch (RuntimeException exception) {
+                logInterfaceFailure(networkInterfaceEntry, exception);
+            }
+        }
+
+        if (created.isEmpty()) {
+            return List.of();
+        }
+        return created;
+    }
+
+    private List<NetworkInterface> resolveInterfaces(String configured, List<String> excludes) throws IOException {
+        String normalized = normalizeInterface(configured);
+        List<String> normalizedExcludes = normalizeExcludes(excludes);
+
+        if ("auto".equalsIgnoreCase(normalized)) {
+            return findAllSuitableInterfaces(normalizedExcludes);
+        }
+
+        NetworkInterface selected = findConfiguredInterface(normalized);
         if (selected == null) {
-            throw new IOException("Network interface not found: " + configured);
+            throw new IOException("Network interface not found: " + normalized);
         }
-
+        if (isExcluded(selected, normalizedExcludes)) {
+            throw new IOException("Configured network interface is excluded: " + normalized);
+        }
         if (!isSuitableInterface(selected)) {
-            throw new IOException("Selected network interface is not suitable for multicast: " + configured);
+            throw new IOException("Selected network interface is not suitable for IPv4 multicast: " + normalized);
         }
 
         return List.of(selected);
     }
 
-    private List<NetworkInterface> findAllSuitableInterfaces() throws IOException {
-        List<NetworkInterface> result = new ArrayList<>();
+    private List<NetworkInterface> findAllSuitableInterfaces(List<String> excludes) throws IOException {
         Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+        if (enumeration == null) {
+            return List.of();
+        }
 
-        if (enumeration == null) return result;
+        List<NetworkInterface> result = new ArrayList<>();
+        Set<String> seenNames = new HashSet<>();
 
         while (enumeration.hasMoreElements()) {
             NetworkInterface networkInterface = enumeration.nextElement();
             String name = networkInterface.getName();
-            String displayName = networkInterface.getDisplayName();
-
-            try {
-                logDebug("Discovered interface: " + displayName + " [" + name + "]");
-
-                if (!networkInterface.isUp() || networkInterface.isLoopback() || !networkInterface.supportsMulticast()) {
-                    continue;
-                }
-
-                InetAddress ipv4 = findIPv4Address(networkInterface);
-                if (ipv4 == null) {
-                    continue;
-                }
-
-                logDebug("Multicast candidate: " + displayName + " [" + name + "] IPv4=" + ipv4.getHostAddress());
-                result.add(networkInterface);
-
-            } catch (Exception exception) {
-                logDebug("Ignored interface " + displayName + ": " + exception.getMessage());
+            if (name == null || !seenNames.add(name.toLowerCase(Locale.ROOT))) {
+                continue;
             }
+
+            if (!isSuitableInterface(networkInterface)) {
+                continue;
+            }
+            if (isExcluded(networkInterface, excludes)) {
+                logDebug("Skipping excluded interface: {} [{}]", networkInterface.getDisplayName(), name);
+                continue;
+            }
+            result.add(networkInterface);
         }
 
         return result;
@@ -184,33 +378,55 @@ public class MulticastBroadcaster {
 
     private boolean isSuitableInterface(NetworkInterface networkInterface) {
         try {
-            return networkInterface.isUp() 
-                    && !networkInterface.isLoopback() 
-                    && networkInterface.supportsMulticast() 
+            return networkInterface.isUp()
+                    && !networkInterface.isLoopback()
+                    && networkInterface.supportsMulticast()
                     && findIPv4Address(networkInterface) != null;
-        } catch (Exception exception) {
+        } catch (IOException exception) {
             return false;
         }
     }
 
-    private NetworkInterface findConfiguredInterface(String configured) throws IOException {
-        String normalized = configured.trim();
-        Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+    private boolean isExcluded(NetworkInterface networkInterface, List<String> excludes) {
+        if (excludes.isEmpty()) {
+            return false;
+        }
 
-        if (enumeration == null) return null;
+        String name = networkInterface.getName();
+        String displayName = networkInterface.getDisplayName();
+        InetAddress ipv4 = findIPv4Address(networkInterface);
+        String address = ipv4 == null ? "" : ipv4.getHostAddress();
+
+        for (String excluded : excludes) {
+            if (equalsIgnoreCase(excluded, name)
+                    || equalsIgnoreCase(excluded, displayName)
+                    || equalsIgnoreCase(excluded, address)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private NetworkInterface findConfiguredInterface(String configured) throws IOException {
+        Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+        if (enumeration == null) {
+            return null;
+        }
 
         while (enumeration.hasMoreElements()) {
             NetworkInterface networkInterface = enumeration.nextElement();
             String name = networkInterface.getName();
             String displayName = networkInterface.getDisplayName();
 
-            if (name != null && name.trim().equalsIgnoreCase(normalized)) return networkInterface;
-            if (displayName != null && displayName.trim().equalsIgnoreCase(normalized)) return networkInterface;
+            if (equalsIgnoreCase(configured, name) || equalsIgnoreCase(configured, displayName)) {
+                return networkInterface;
+            }
 
             InetAddress ipv4 = findIPv4Address(networkInterface);
-            if (ipv4 != null && ipv4.getHostAddress().equalsIgnoreCase(normalized)) return networkInterface;
+            if (ipv4 != null && equalsIgnoreCase(configured, ipv4.getHostAddress())) {
+                return networkInterface;
+            }
         }
-
         return null;
     }
 
@@ -225,134 +441,357 @@ public class MulticastBroadcaster {
         return null;
     }
 
-    private InterfaceSocket createSocket(NetworkInterface networkInterface, InetAddress multicastAddress) throws IOException {
+    private InterfaceSocket createSocket(NetworkInterface networkInterface) throws IOException {
         InetAddress ipv4 = findIPv4Address(networkInterface);
         if (ipv4 == null) {
-            throw new IOException("The network interface does not have a valid IPv4 address.");
+            throw new IOException("The network interface does not have an IPv4 address.");
         }
 
         DatagramChannel channel = null;
         try {
             channel = DatagramChannel.open(StandardProtocolFamily.INET);
-            channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
             channel.setOption(StandardSocketOptions.IP_MULTICAST_TTL, MULTICAST_TTL);
             channel.setOption(StandardSocketOptions.IP_MULTICAST_IF, networkInterface);
-            channel.bind(new InetSocketAddress(ipv4, 0));
 
-            return new InterfaceSocket(networkInterface, ipv4, channel, multicastAddress);
-        } catch (Exception exception) {
+            // Sender sockets do not join the multicast group and do not need to bind to it.
+            // Binding to the wildcard address keeps a DHCP/VPN address change less fragile;
+            // IP_MULTICAST_IF still controls which interface carries the datagram.
+            channel.bind(new InetSocketAddress(0));
+
+            boolean pointToPoint = networkInterface.isPointToPoint();
+            return new InterfaceSocket(networkInterface, ipv4, channel, pointToPoint);
+        } catch (IOException | RuntimeException exception) {
             if (channel != null) {
-                try { channel.close(); } catch (IOException ignored) {}
+                try {
+                    channel.close();
+                } catch (IOException ignored) {
+                }
             }
-            if (exception instanceof IOException ioException) throw ioException;
-            throw new IOException(exception.getMessage(), exception);
+            if (exception instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw new IOException("Could not configure multicast socket for "
+                    + networkInterface.getName() + ".", exception);
         }
     }
 
     private void broadcastSafely() {
-        if (!running || sockets.isEmpty()) return;
+        synchronized (this) {
+            if (!running || sockets.isEmpty()) {
+                return;
+            }
 
-        String payload = buildPayload();
-        byte[] data = payload.getBytes(StandardCharsets.UTF_8);
+            cycles++;
+            boolean failedThisCycle = false;
 
-        if (data.length > MAX_PACKET_SIZE) {
-            logDebug("Broadcast skipped because payload exceeds " + MAX_PACKET_SIZE + " bytes.");
-            return;
-        }
-
-        for (InterfaceSocket interfaceSocket : new ArrayList<>(sockets)) {
             try {
-                sendPacket(interfaceSocket, data, payload);
-            } catch (IOException exception) {
-                logDebug("Failed to broadcast on interface " + interfaceSocket.networkInterface.getDisplayName()
-                        + " [" + interfaceSocket.networkInterface.getName() + "]: " + exception.getMessage());
+                int online = plugin.getServer().getPlayerCount();
+                int max = plugin.getMaxPlayers();
+                byte[] data = getPayload(online, max);
+                ByteBuffer buffer = ByteBuffer.wrap(data);
+                boolean sentAtLeastOnce = false;
+
+                for (InterfaceSocket socket : sockets) {
+                    try {
+                        buffer.rewind();
+                        int written = socket.channel.send(buffer, multicastDestination);
+                        if (written != data.length) {
+                            throw new IOException("Only " + written + " of " + data.length + " bytes were sent.");
+                        }
+                        broadcastsSent++;
+                        sentAtLeastOnce = true;
+                    } catch (IOException | RuntimeException exception) {
+                        broadcastFailures++;
+                        failedThisCycle = true;
+                        logInterfaceFailure(socket.networkInterface, exception);
+                    }
+                }
+
+                if (sentAtLeastOnce) {
+                    lastBroadcastEpochMillis = System.currentTimeMillis();
+                }
+
+                if (failedThisCycle) {
+                    maybeRefreshInterfacesAfterFailure();
+                }
+                maybeLogDebugSummary(data.length, online, max);
+            } catch (RuntimeException exception) {
+                broadcastFailures++;
+                failedThisCycle = true;
+                logRateLimitedFailure("Unexpected LAN broadcast failure.", exception);
+                if (failedThisCycle) {
+                    maybeRefreshInterfacesAfterFailure();
+                }
             }
         }
     }
 
-    private void sendPacket(InterfaceSocket interfaceSocket, byte[] data, String payload) throws IOException {
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        InetSocketAddress destination = new InetSocketAddress(interfaceSocket.multicastAddress, MULTICAST_PORT);
+    private byte[] getPayload(int online, int max) {
+        if (cachedPayload != null
+                && cachedOnline == online
+                && cachedMax == max
+                && cachedPort == advertisedPort
+                && Objects.equals(cachedMotd, configuredMotd)) {
+            return cachedPayload;
+        }
 
-        interfaceSocket.channel.send(buffer, destination);
-        logDebug("Broadcast sent via " + interfaceSocket.networkInterface.getDisplayName() 
-                + " (" + interfaceSocket.ipv4.getHostAddress() + "): " + payload);
-    }
-
-    private String buildPayload() {
-        return "[MOTD]" + resolveMotd() + "[/MOTD][AD]" + advertisedPort + "[/AD]";
-    }
-
-    private String resolveMotd() {
         String motd = configuredMotd == null ? "" : configuredMotd;
+        motd = motd.replace("{online}", Integer.toString(online))
+                .replace("{max}", Integer.toString(max));
+        motd = plugin.formatMiniMessage(motd);
+        motd = sanitizeMotd(motd);
 
-        int online = plugin.getServer().getPlayerCount();
-        int max = plugin.getServer().getConfiguration().getShowMaxPlayers();
+        String suffix = "[/MOTD][AD]" + advertisedPort + "[/AD]";
+        int availableMotdBytes = MAX_PACKET_SIZE
+                - "[MOTD]".getBytes(StandardCharsets.UTF_8).length
+                - suffix.getBytes(StandardCharsets.UTF_8).length;
+        motd = truncateUtf8(motd, Math.max(0, availableMotdBytes));
 
-        motd = motd.replace("{online}", String.valueOf(online))
-                   .replace("{max}", String.valueOf(max));
-
-        return translateLegacyColors(motd);
+        String payload = "[MOTD]" + motd + suffix;
+        cachedPayload = payload.getBytes(StandardCharsets.UTF_8);
+        cachedOnline = online;
+        cachedMax = max;
+        cachedPort = advertisedPort;
+        cachedMotd = configuredMotd;
+        return cachedPayload;
     }
 
-    private String translateLegacyColors(String text) {
-        if (text == null || text.isEmpty()) return text;
+    private String sanitizeMotd(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
 
         StringBuilder result = new StringBuilder(text.length());
-        for (int i = 0; i < text.length(); i++) {
-            char current = text.charAt(i);
-            if (current == '&' && i + 1 < text.length()) {
-                char code = text.charAt(i + 1);
-                if (isLegacyColorCode(code)) {
-                    result.append('§').append(Character.toLowerCase(code));
-                    i++;
+        for (int index = 0; index < text.length();) {
+            char current = text.charAt(index);
+
+            if (current == '[') {
+                if (regionMatchesIgnoreCase(text, index, "[MOTD]")
+                        || regionMatchesIgnoreCase(text, index, "[/MOTD]")
+                        || regionMatchesIgnoreCase(text, index, "[AD]")
+                        || regionMatchesIgnoreCase(text, index, "[/AD]")) {
+                    index = skipProtocolToken(text, index);
                     continue;
                 }
             }
-            result.append(current);
-        }
 
+            if (current < 0x20 || current == 0x7F) {
+                index++;
+                continue;
+            }
+
+            result.append(current);
+            index++;
+        }
         return result.toString();
     }
 
-    private boolean isLegacyColorCode(char code) {
-        return (code >= '0' && code <= '9')
-                || (code >= 'a' && code <= 'f')
-                || (code >= 'A' && code <= 'F')
-                || code == 'k' || code == 'K'
-                || code == 'l' || code == 'L'
-                || code == 'm' || code == 'M'
-                || code == 'n' || code == 'N'
-                || code == 'o' || code == 'O'
-                || code == 'r' || code == 'R';
+    private int skipProtocolToken(String text, int index) {
+        int end = text.indexOf(']', index);
+        return end >= 0 ? end + 1 : index + 1;
     }
 
-    private synchronized void closeSockets() {
-        for (InterfaceSocket interfaceSocket : sockets) {
-            try {
-                interfaceSocket.channel.close();
-            } catch (IOException ignored) {}
+    private boolean regionMatchesIgnoreCase(String text, int offset, String token) {
+        return offset + token.length() <= text.length()
+                && text.regionMatches(true, offset, token, 0, token.length());
+    }
+
+    private String truncateUtf8(String value, int maxBytes) {
+        if (value == null || value.isEmpty() || maxBytes <= 0) {
+            return maxBytes <= 0 ? "" : value;
         }
-        sockets.clear();
+
+        if (utf8Size(value) <= maxBytes) {
+            return value;
+        }
+
+        StringBuilder result = new StringBuilder(value.length());
+        int bytes = 0;
+        for (int index = 0; index < value.length();) {
+            int codePoint = value.codePointAt(index);
+            int charCount = Character.charCount(codePoint);
+            int codePointBytes = utf8Size(codePoint);
+            if (bytes + codePointBytes > maxBytes) {
+                break;
+            }
+            result.appendCodePoint(codePoint);
+            bytes += codePointBytes;
+            index += charCount;
+        }
+        return result.toString();
     }
 
-    private void logDebug(String message) {
+    private int utf8Size(String value) {
+        return value.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    private int utf8Size(int codePoint) {
+        if (codePoint <= 0x7F) {
+            return 1;
+        }
+        if (codePoint <= 0x7FF) {
+            return 2;
+        }
+        if (codePoint <= 0xFFFF) {
+            return 3;
+        }
+        return 4;
+    }
+
+    private void maybeRefreshInterfacesAfterFailure() {
+        if (!running || System.nanoTime() < nextInterfaceRefreshNanos) {
+            return;
+        }
+
+        nextInterfaceRefreshNanos = System.nanoTime() + INTERFACE_REFRESH_INTERVAL_NANOS;
+
+        try {
+            List<InterfaceSocket> replacement = createSockets(configuredInterface, excludedInterfaces);
+            if (!replacement.isEmpty()) {
+                List<InterfaceSocket> previous = sockets;
+                sockets = List.copyOf(replacement);
+                closeSockets(previous);
+            }
+        } catch (IOException exception) {
+            logRateLimitedFailure("Multicast interface refresh failed.", exception);
+        }
+    }
+
+    private void maybeLogDebugSummary(int payloadBytes, int online, int max) {
+        if (!debug) {
+            return;
+        }
+
+        long now = System.nanoTime();
+        if (now < nextDebugLogNanos) {
+            return;
+        }
+        nextDebugLogNanos = now + DEBUG_LOG_INTERVAL_NANOS;
+
+        plugin.getLogger().info(
+                "[DEBUG] LAN multicast: {} interface(s), {} bytes, {} online/{} max, {} packet(s) sent, {} failure(s), group={}:{}, TTL={}",
+                sockets.size(),
+                payloadBytes,
+                online,
+                max,
+                broadcastsSent,
+                broadcastFailures,
+                MULTICAST_ADDRESS,
+                MULTICAST_PORT,
+                MULTICAST_TTL
+        );
+    }
+
+    private void logInterfaceFailure(NetworkInterface networkInterface, Throwable exception) {
+        long now = System.nanoTime();
+        if (now < nextFailureLogNanos) {
+            return;
+        }
+
+        nextFailureLogNanos = now + FAILURE_LOG_INTERVAL_NANOS;
+        plugin.getLogger().warn(
+                "LAN multicast send/setup failed on interface {} [{}]: {}",
+                networkInterface.getDisplayName(),
+                networkInterface.getName(),
+                exception.getMessage()
+        );
+    }
+
+    private void logRateLimitedFailure(String message, Throwable exception) {
+        long now = System.nanoTime();
+        if (now < nextFailureLogNanos) {
+            return;
+        }
+        nextFailureLogNanos = now + FAILURE_LOG_INTERVAL_NANOS;
+        plugin.getLogger().warn(message, exception);
+    }
+
+    private void logDebug(String message, Object... arguments) {
         if (debug) {
-            plugin.getLogger().info("[DEBUG] " + message);
+            plugin.getLogger().debug(message, arguments);
         }
     }
 
-    private static final class InterfaceSocket {
-        private final NetworkInterface networkInterface;
-        private final InetAddress ipv4;
-        private final DatagramChannel channel;
-        private final InetAddress multicastAddress;
+    private void invalidatePayloadCache() {
+        cachedOnline = Integer.MIN_VALUE;
+        cachedMax = Integer.MIN_VALUE;
+        cachedPort = Integer.MIN_VALUE;
+        cachedMotd = null;
+        cachedPayload = null;
+    }
 
-        private InterfaceSocket(NetworkInterface networkInterface, InetAddress ipv4, DatagramChannel channel, InetAddress multicastAddress) {
-            this.networkInterface = networkInterface;
-            this.ipv4 = ipv4;
-            this.channel = channel;
-            this.multicastAddress = multicastAddress;
+    private void closeSockets(List<InterfaceSocket> targets) {
+        for (InterfaceSocket socket : targets) {
+            try {
+                socket.channel.close();
+            } catch (IOException ignored) {
+            }
         }
     }
-}               
+
+    private String normalizeInterface(String value) {
+        if (value == null || value.isBlank()) {
+            return "auto";
+        }
+        return value.trim();
+    }
+
+    private List<String> normalizeExcludes(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> result = new ArrayList<>();
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+
+            String normalized = value.trim();
+            boolean duplicate = false;
+            for (String existing : result) {
+                if (existing.equalsIgnoreCase(normalized)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) {
+                result.add(normalized);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private boolean sameIgnoreCase(List<String> left, List<String> right) {
+        if (left.size() != right.size()) {
+            return false;
+        }
+        for (int i = 0; i < left.size(); i++) {
+            if (!left.get(i).equalsIgnoreCase(right.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean equalsIgnoreCase(String left, String right) {
+        return left != null && right != null && left.equalsIgnoreCase(right);
+    }
+
+    public record InterfaceInfo(
+            String name,
+            String displayName,
+            String ipv4,
+            boolean virtual,
+            boolean pointToPoint
+    ) {
+    }
+
+    private record InterfaceSocket(
+            NetworkInterface networkInterface,
+            InetAddress ipv4,
+            DatagramChannel channel,
+            boolean pointToPoint
+    ) {
+    }
+}
